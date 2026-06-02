@@ -42,6 +42,12 @@ const injectGlobal = () => {
       -webkit-background-clip: text; -webkit-text-fill-color: transparent;
       background-clip: text; animation: shimmer 4s linear infinite;
     }
+    .login-btn { transition: opacity .15s, transform .1s; }
+    .login-btn:hover:not(:disabled) { opacity: 0.9; transform: translateY(-1px); }
+    .login-input { transition: border-color .15s; }
+    .login-input:focus { border-color: #C8A951 !important; outline: none; }
+    .forgot-link { cursor: pointer; transition: color .15s; }
+    .forgot-link:hover { color: #C8A951 !important; }
   `;
   document.head.appendChild(s);
 };
@@ -75,19 +81,62 @@ const Logo = ({ size = 32 }) => (
 
 // ── PAGE LOGIN ────────────────────────────────────────────────────────
 const PageLogin = ({ onLogin }) => {
-  const [email, setEmail]       = useState('');
-  const [password, setPassword] = useState('');
-  const [error, setError]       = useState('');
-  const [loading, setLoading]   = useState(false);
+  const [email, setEmail]           = useState('');
+  const [password, setPassword]     = useState('');
+  const [error, setError]           = useState('');
+  const [success, setSuccess]       = useState('');
+  const [loading, setLoading]       = useState(false);
+  const [resetMode, setResetMode]   = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setLoading(true); setError('');
+    if (!email || !password) {
+      setError('Veuillez remplir tous les champs.');
+      return;
+    }
+    setLoading(true);
+    setError('');
+    setSuccess('');
     try {
-      const { data } = await supabase.auth.signInWithPassword({ email, password });
-      if (data.user) onLogin(data.user);
+      const { data, error: authError } = await supabase.auth.signInWithPassword({ email, password });
+      if (authError) {
+        if (authError.message.includes('Invalid login credentials')) {
+          setError('Email ou mot de passe incorrect.');
+        } else if (authError.message.includes('Email not confirmed')) {
+          setError('Votre email n\'est pas encore confirmé. Vérifiez votre boîte mail.');
+        } else {
+          setError(authError.message || 'Erreur de connexion.');
+        }
+      } else if (data.user) {
+        const u = await getCurrentUser();
+        onLogin(u);
+      }
     } catch (err) {
-      setError('Email ou mot de passe incorrect.');
+      setError('Erreur de connexion. Vérifiez vos identifiants.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleForgotPassword = async () => {
+    if (!email) {
+      setError('Entrez votre email ci-dessus pour réinitialiser votre mot de passe.');
+      return;
+    }
+    setLoading(true);
+    setError('');
+    setSuccess('');
+    try {
+      const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: 'https://amc-host.vercel.app',
+      });
+      if (resetError) {
+        setError('Erreur lors de l\'envoi. Vérifiez votre email.');
+      } else {
+        setSuccess('Email de réinitialisation envoyé ! Vérifiez votre boîte mail (et les spams). Le lien est valide 24h.');
+      }
+    } catch (err) {
+      setError('Erreur lors de l\'envoi.');
     } finally {
       setLoading(false);
     }
@@ -101,29 +150,68 @@ const PageLogin = ({ onLogin }) => {
           <div style={{ fontFamily:F.serif, fontSize:24, letterSpacing:4, color:C.white, textTransform:'uppercase', marginTop:12, fontWeight:500 }}>AMC HOST</div>
           <div style={{ fontFamily:F.sans, fontSize:9, letterSpacing:4, color:C.gold, textTransform:'uppercase', marginTop:4 }}>Channel Manager</div>
         </div>
-        <form onSubmit={handleSubmit} style={{ background:C.card, border:`0.5px solid ${C.borderGold}`, borderRadius:10, padding:28 }}>
+
+        <div style={{ background:C.card, border:'0.5px solid #3A2E10', borderRadius:10, padding:28 }}>
           <div style={{ fontFamily:F.serif, fontSize:18, color:C.white, marginBottom:20, textAlign:'center', letterSpacing:.5 }}>Connexion</div>
-          {[
-            { label:'Email', value:email, set:setEmail, type:'email', placeholder:'amconciergerieplus@gmail.com' },
-            { label:'Mot de passe', value:password, set:setPassword, type:'password', placeholder:'••••••••' },
-          ].map((f, i) => (
-            <div key={i} style={{ marginBottom:14 }}>
-              <label style={{ fontFamily:F.sans, fontSize:9, color:C.muted, letterSpacing:2, textTransform:'uppercase', display:'block', marginBottom:5 }}>{f.label}</label>
+
+          <form onSubmit={handleSubmit} noValidate>
+            <div style={{ marginBottom:14 }}>
+              <label style={{ fontFamily:F.sans, fontSize:9, color:C.muted, letterSpacing:2, textTransform:'uppercase', display:'block', marginBottom:5 }}>Email</label>
               <input
-                type={f.type} value={f.value} onChange={e => f.set(e.target.value)}
-                placeholder={f.placeholder} required
-                style={{ width:'100%', background:C.surface, border:`0.5px solid ${C.border}`, color:C.white, padding:'10px 12px', borderRadius:4, fontFamily:F.sans, fontSize:12, outline:'none' }}
+                className="login-input"
+                type="email"
+                value={email}
+                onChange={e => setEmail(e.target.value)}
+                placeholder="amconciergerieplus@gmail.com"
+                autoComplete="email"
+                style={{ width:'100%', background:C.surface, border:'0.5px solid #222222', color:C.white, padding:'10px 12px', borderRadius:4, fontFamily:F.sans, fontSize:12 }}
               />
             </div>
-          ))}
-          {error && (
-            <div style={{ fontFamily:F.sans, fontSize:11, color:C.dangerTxt, marginBottom:12, textAlign:'center' }}>{error}</div>
-          )}
-          <button type="submit" disabled={loading}
-            style={{ width:'100%', background:`linear-gradient(135deg,${C.goldDark},${C.gold})`, color:C.bg, border:'none', padding:'11px', borderRadius:4, fontSize:11, fontWeight:700, cursor:loading?'not-allowed':'pointer', fontFamily:F.sans, letterSpacing:2, textTransform:'uppercase', marginTop:4, opacity:loading?.7:1 }}>
-            {loading ? 'Connexion...' : 'Se connecter'}
-          </button>
-        </form>
+
+            <div style={{ marginBottom:6 }}>
+              <label style={{ fontFamily:F.sans, fontSize:9, color:C.muted, letterSpacing:2, textTransform:'uppercase', display:'block', marginBottom:5 }}>Mot de passe</label>
+              <input
+                className="login-input"
+                type="password"
+                value={password}
+                onChange={e => setPassword(e.target.value)}
+                placeholder="••••••••"
+                autoComplete="current-password"
+                style={{ width:'100%', background:C.surface, border:'0.5px solid #222222', color:C.white, padding:'10px 12px', borderRadius:4, fontFamily:F.sans, fontSize:12 }}
+              />
+            </div>
+
+            <div style={{ textAlign:'right', marginBottom:16 }}>
+              <span
+                className="forgot-link"
+                onClick={handleForgotPassword}
+                style={{ fontFamily:F.sans, fontSize:10, color:C.muted, textDecoration:'underline' }}>
+                Mot de passe oublié ?
+              </span>
+            </div>
+
+            {error && (
+              <div style={{ fontFamily:F.sans, fontSize:11, color:C.dangerTxt, marginBottom:12, textAlign:'center', background:'#2A0E0A', border:'0.5px solid #E07A6540', borderRadius:4, padding:'8px 12px', lineHeight:1.5 }}>
+                ⚠ {error}
+              </div>
+            )}
+
+            {success && (
+              <div style={{ fontFamily:F.sans, fontSize:11, color:C.successTxt, marginBottom:12, textAlign:'center', background:'#0A1F14', border:'0.5px solid #5BBF8A40', borderRadius:4, padding:'8px 12px', lineHeight:1.5 }}>
+                ✓ {success}
+              </div>
+            )}
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="login-btn"
+              style={{ width:'100%', background:'linear-gradient(135deg,#7A5E1A,#C8A951)', color:C.bg, border:'none', padding:'11px', borderRadius:4, fontSize:11, fontWeight:700, cursor:loading?'not-allowed':'pointer', fontFamily:F.sans, letterSpacing:2, textTransform:'uppercase', opacity:loading?0.7:1 }}>
+              {loading ? 'Connexion...' : 'Se connecter'}
+            </button>
+          </form>
+        </div>
+
         <div style={{ textAlign:'center', marginTop:16, fontFamily:F.sans, fontSize:10, color:C.muted }}>
           AM Conciergerie Plus · Usage privé
         </div>
@@ -196,10 +284,11 @@ const Dashboard = ({ user }) => {
   }, []);
 
   const ca = reservations.reduce((a, r) => a + (r.montant || 0), 0);
+  const role = user?.profile?.role || 'admin';
 
   return (
     <div className="fade">
-      <div style={{ marginBottom:24, borderBottom:`0.5px solid #3A2E10`, paddingBottom:14, display:'flex', alignItems:'flex-end', justifyContent:'space-between' }}>
+      <div style={{ marginBottom:24, borderBottom:'0.5px solid #3A2E10', paddingBottom:14, display:'flex', alignItems:'flex-end', justifyContent:'space-between' }}>
         <div>
           <h1 style={{ fontFamily:F.serif, fontSize:26, fontWeight:300, color:C.white, letterSpacing:1 }}>
             Bonjour, <span className="shimmer">Aloyse</span>
@@ -288,12 +377,18 @@ export default function App() {
       setLoading(false);
     });
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (event === 'PASSWORD_RECOVERY') {
+        // Laisser l'utilisateur se connecter normalement après reset
+        setLoading(false);
+        return;
+      }
       if (session?.user) {
         const u = await getCurrentUser();
         setUser(u);
       } else {
         setUser(null);
       }
+      setLoading(false);
     });
     return () => subscription.unsubscribe();
   }, []);
@@ -309,7 +404,7 @@ export default function App() {
     );
   }
 
-  if (!user) return <PageLogin onLogin={async () => { const u = await getCurrentUser(); setUser(u); }}/>;
+  if (!user) return <PageLogin onLogin={u => setUser(u)}/>;
 
   const role = user?.profile?.role || 'admin';
 
@@ -321,7 +416,7 @@ export default function App() {
       case 'reservations': return <PagePlaceholder title="Réservations" icon="◈"/>;
       case 'menage':       return <PagePlaceholder title="Ménage & équipes" icon="✦"/>;
       case 'messages':     return <PagePlaceholder title="Messages" icon="◻"/>;
-      case 'livrets':      return <PagePlaceholder title="Livrets d'accueil" icon="◉"/>;
+      case 'livrets':      return <PagePlaceholder title="Livrets d\'accueil" icon="◉"/>;
       case 'compta':       return <PagePlaceholder title="Comptabilité" icon="◆"/>;
       case 'facturation':  return <PagePlaceholder title="Facturation" icon="▣"/>;
       case 'proprio':      return <PagePlaceholder title="Propriétaires" icon="👤"/>;
@@ -394,4 +489,4 @@ export default function App() {
       </div>
     </div>
   );
-  }
+                        }
