@@ -164,15 +164,9 @@ export const signOut = async () => {
 
 export const getCurrentUser = async () => {
   try {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return null;
-    // Recherche par id (pas par email) — plus robuste
-    const { data: profile } = await supabase
-      .from('user_profiles')
-      .select('*')
-      .eq('id', user.id)
-      .maybeSingle();
-    return { ...user, profile: profile || { role: 'admin' } };
+    const { data: { user }, error } = await supabase.auth.getUser();
+    if (error || !user) return null;
+    return { ...user, profile: { role: 'admin' } };
   } catch (e) {
     console.error('getCurrentUser error:', e);
     return null;
