@@ -362,12 +362,97 @@ const Dashboard = ({ user }) => {
 };
 
 // ── APP PRINCIPALE ────────────────────────────────────────────────────
+
+// ── PAGE RESET MOT DE PASSE ──────────────────────────────────────────
+const PagePasswordReset = ({ onDone }) => {
+  const [newPassword, setNewPassword] = useState('');
+  const [confirm, setConfirm]         = useState('');
+  const [error, setError]             = useState('');
+  const [loading, setLoading]         = useState(false);
+  const [success, setSuccess]         = useState(false);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!newPassword || newPassword.length < 6) {
+      setError('Le mot de passe doit contenir au moins 6 caractères.');
+      return;
+    }
+    if (newPassword !== confirm) {
+      setError('Les mots de passe ne correspondent pas.');
+      return;
+    }
+    setLoading(true);
+    setError('');
+    try {
+      const { error: updateError } = await supabase.auth.updateUser({ password: newPassword });
+      if (updateError) {
+        setError(updateError.message || 'Erreur lors de la mise à jour.');
+      } else {
+        setSuccess(true);
+        setTimeout(() => onDone(), 1500);
+      }
+    } catch (err) {
+      setError('Erreur lors de la mise à jour du mot de passe.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div style={{ minHeight:'100vh', background:C.bg, display:'flex', alignItems:'center', justifyContent:'center', padding:16 }}>
+      <div style={{ width:'100%', maxWidth:400 }}>
+        <div style={{ textAlign:'center', marginBottom:32 }}>
+          <Logo size={56}/>
+          <div style={{ fontFamily:F.serif, fontSize:24, letterSpacing:4, color:C.white, textTransform:'uppercase', marginTop:12, fontWeight:500 }}>AMC HOST</div>
+        </div>
+        <div style={{ background:C.card, border:'0.5px solid #3A2E10', borderRadius:10, padding:28 }}>
+          <div style={{ fontFamily:F.serif, fontSize:18, color:C.white, marginBottom:20, textAlign:'center', letterSpacing:.5 }}>
+            {success ? 'Mot de passe mis à jour !' : 'Nouveau mot de passe'}
+          </div>
+          {!success && (
+            <form onSubmit={handleSubmit} noValidate>
+              <div style={{ marginBottom:14 }}>
+                <label style={{ fontFamily:F.sans, fontSize:9, color:C.muted, letterSpacing:2, textTransform:'uppercase', display:'block', marginBottom:5 }}>Nouveau mot de passe</label>
+                <input
+                  className="login-input"
+                  type="password"
+                  value={newPassword}
+                  onChange={e => setNewPassword(e.target.value)}
+                  placeholder="••••••••"
+                  style={{ width:'100%', background:'#1a1a1a', border:'0.5px solid #3A2E10', borderRadius:4, padding:'10px 12px', color:C.white, fontFamily:F.sans, fontSize:12, boxSizing:'border-box' }}
+                />
+              </div>
+              <div style={{ marginBottom:20 }}>
+                <label style={{ fontFamily:F.sans, fontSize:9, color:C.muted, letterSpacing:2, textTransform:'uppercase', display:'block', marginBottom:5 }}>Confirmer le mot de passe</label>
+                <input
+                  className="login-input"
+                  type="password"
+                  value={confirm}
+                  onChange={e => setConfirm(e.target.value)}
+                  placeholder="••••••••"
+                  style={{ width:'100%', background:'#1a1a1a', border:'0.5px solid #3A2E10', borderRadius:4, padding:'10px 12px', color:C.white, fontFamily:F.sans, fontSize:12, boxSizing:'border-box' }}
+                />
+              </div>
+              {error && <div style={{ color:C.dangerTxt, fontFamily:F.sans, fontSize:11, marginBottom:12 }}>{error}</div>}
+              <button type="submit" disabled={loading} style={{ width:'100%', background:'linear-gradient(135deg,#7A5E1A,#C8A951)', color:C.bg, border:'none', padding:'11px', borderRadius:4, fontSize:11, fontWeight:700, cursor:loading?'not-allowed':'pointer', fontFamily:F.sans, letterSpacing:2, textTransform:'uppercase', opacity:loading?0.7:1 }}>
+                {loading ? 'Mise à jour...' : 'Mettre à jour'}
+              </button>
+            </form>
+          )}
+          {success && <div style={{ textAlign:'center', color:C.successTxt, fontFamily:F.sans, fontSize:12 }}>Redirection en cours...</div>}
+        </div>
+      </div>
+    </div>
+  );
+};
+
 export default function App() {
   injectGlobal();
   const [user, setUser]           = useState(null);
   const [loading, setLoading]     = useState(true);
   const [page, setPage]           = useState('dashboard');
   const [sidebarOpen, setSidebar] = useState(true);
+  const [showPasswordReset, setShowPasswordReset] = useState(false);
 
   useEffect(() => {
     getCurrentUser().then(u => {
@@ -376,7 +461,7 @@ export default function App() {
     });
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (event === 'PASSWORD_RECOVERY') {
-        // Laisser l'utilisateur se connecter normalement après reset
+        setShowPasswordReset(true);
         setLoading(false);
         return;
       }
@@ -402,6 +487,7 @@ export default function App() {
     );
   }
 
+  if (showPasswordReset) return <PagePasswordReset onDone={() => { setShowPasswordReset(false); setUser(null); }}/>;
   if (!user) return <PageLogin onLogin={u => setUser(u)}/>;
 
   const role = user?.profile?.role || 'admin';
