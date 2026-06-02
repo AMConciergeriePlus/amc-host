@@ -209,13 +209,10 @@ export const getEquipes = async () => {
   const { data, error } = await supabase
     .from('equipes')
     .select('*')
+        .order('nom');
+    if (error) throw error;
+        return data;
     .order('nom');
   if (error) throw error;
   return data;
-};
-
-// ── AUTH ──────────────────────────────────────────────────────────────
-export const getCurrentUser = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    return user;
-};
+};;
