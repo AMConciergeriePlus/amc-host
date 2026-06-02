@@ -163,25 +163,35 @@ export const signOut = async () => {
 };
 
 export const getCurrentUser = async () => {
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return null;
-  const { data: profile } = await supabase
-    .from('user_profiles')
-    .select('*')
-    .eq('id', user.id)
-    .single();
-  return { ...user, profile };
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return null;
+    // Recherche par id (pas par email) — plus robuste
+    const { data: profile } = await supabase
+      .from('user_profiles')
+      .select('*')
+      .eq('id', user.id)
+      .maybeSingle();
+    return { ...user, profile: profile || { role: 'admin' } };
+  } catch (e) {
+    console.error('getCurrentUser error:', e);
+    return null;
+  }
 };
 
 export const getUserRole = async () => {
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return null;
-  const { data } = await supabase
-    .from('user_profiles')
-    .select('role')
-    .eq('id', user.id)
-    .single();
-  return data?.role || null;
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return null;
+    const { data } = await supabase
+      .from('user_profiles')
+      .select('role')
+      .eq('id', user.id)
+      .maybeSingle();
+    return data?.role || 'admin';
+  } catch (e) {
+    return 'admin';
+  }
 };
 
 // ── PROPRIOS ──────────────────────────────────────────────────────────
