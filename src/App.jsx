@@ -86,7 +86,6 @@ const PageLogin = ({ onLogin }) => {
   const [error, setError]           = useState('');
   const [success, setSuccess]       = useState('');
   const [loading, setLoading]       = useState(false);
-  const [resetMode, setResetMode]   = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -284,7 +283,6 @@ const Dashboard = ({ user }) => {
   }, []);
 
   const ca = reservations.reduce((a, r) => a + (r.montant || 0), 0);
-  const role = user?.profile?.role || 'admin';
 
   return (
     <div className="fade">
