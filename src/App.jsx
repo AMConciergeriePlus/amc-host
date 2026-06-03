@@ -455,10 +455,19 @@ export default function App() {
   const [showPasswordReset, setShowPasswordReset] = useState(false);
 
   useEffect(() => {
-    getCurrentUser().then(u => {
-      setUser(u);
+    // Check if this is a password recovery link FIRST, before loading user
+    const hashParams = new URLSearchParams(window.location.hash.substring(1));
+    if (hashParams.get('type') === 'recovery') {
+      setShowPasswordReset(true);
       setLoading(false);
-    });
+      // Clear the hash to avoid issues
+      window.history.replaceState(null, '', window.location.pathname);
+    } else {
+      getCurrentUser().then(u => {
+        setUser(u);
+        setLoading(false);
+      });
+    }
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (event === 'PASSWORD_RECOVERY') {
         setShowPasswordReset(true);
