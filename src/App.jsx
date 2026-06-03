@@ -366,13 +366,15 @@ const Dashboard = ({ user }) => {
 // ── PAGE RESET MOT DE PASSE ──────────────────────────────────────────
 const PagePasswordReset = ({ onDone }) => {
   const [newPassword, setNewPassword] = useState('');
-  const [confirm, setConfirm]         = useState('');
-  const [error, setError]             = useState('');
-  const [loading, setLoading]         = useState(false);
-  const [success, setSuccess]         = useState(false);
+  const [confirm, setConfirm] = useState('');
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [success, setSuccess] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    e.stopPropagation();
+    
     if (!newPassword || newPassword.length < 6) {
       setError('Le mot de passe doit contenir au moins 6 caractères.');
       return;
@@ -381,19 +383,31 @@ const PagePasswordReset = ({ onDone }) => {
       setError('Les mots de passe ne correspondent pas.');
       return;
     }
+    
     setLoading(true);
     setError('');
+    
     try {
+      // Check if we have an active session
+      const { data: sessionData } = await supabase.auth.getSession();
+      if (!sessionData?.session) {
+        setError('Session expirée. Veuillez redemander un lien de réinitialisation.');
+        setLoading(false);
+        return;
+      }
+      
       const { error: updateError } = await supabase.auth.updateUser({ password: newPassword });
+      
       if (updateError) {
         setError(updateError.message || 'Erreur lors de la mise à jour.');
+        setLoading(false);
       } else {
         setSuccess(true);
-        setTimeout(() => onDone(), 1500);
+        await supabase.auth.signOut();
+        setTimeout(() => onDone(), 2000);
       }
     } catch (err) {
-      setError('Erreur lors de la mise à jour du mot de passe.');
-    } finally {
+      setError('Erreur inattendue : ' + (err.message || 'veuillez réessayer.'));
       setLoading(false);
     }
   };
@@ -407,7 +421,7 @@ const PagePasswordReset = ({ onDone }) => {
         </div>
         <div style={{ background:C.card, border:'0.5px solid #3A2E10', borderRadius:10, padding:28 }}>
           <div style={{ fontFamily:F.serif, fontSize:18, color:C.white, marginBottom:20, textAlign:'center', letterSpacing:.5 }}>
-            {success ? 'Mot de passe mis à jour !' : 'Nouveau mot de passe'}
+            {success ? '✓ Mot de passe mis à jour !' : 'Créer votre mot de passe'}
           </div>
           {!success && (
             <form onSubmit={handleSubmit} noValidate>
@@ -419,6 +433,7 @@ const PagePasswordReset = ({ onDone }) => {
                   value={newPassword}
                   onChange={e => setNewPassword(e.target.value)}
                   placeholder="••••••••"
+                  autoFocus
                   style={{ width:'100%', background:'#1a1a1a', border:'0.5px solid #3A2E10', borderRadius:4, padding:'10px 12px', color:C.white, fontFamily:F.sans, fontSize:12, boxSizing:'border-box' }}
                 />
               </div>
@@ -433,18 +448,32 @@ const PagePasswordReset = ({ onDone }) => {
                   style={{ width:'100%', background:'#1a1a1a', border:'0.5px solid #3A2E10', borderRadius:4, padding:'10px 12px', color:C.white, fontFamily:F.sans, fontSize:12, boxSizing:'border-box' }}
                 />
               </div>
-              {error && <div style={{ color:C.dangerTxt, fontFamily:F.sans, fontSize:11, marginBottom:12 }}>{error}</div>}
-              <button type="submit" disabled={loading} style={{ width:'100%', background:'linear-gradient(135deg,#7A5E1A,#C8A951)', color:C.bg, border:'none', padding:'11px', borderRadius:4, fontSize:11, fontWeight:700, cursor:loading?'not-allowed':'pointer', fontFamily:F.sans, letterSpacing:2, textTransform:'uppercase', opacity:loading?0.7:1 }}>
-                {loading ? 'Mise à jour...' : 'Mettre à jour'}
+              {error && (
+                <div style={{ color:C.dangerTxt, fontFamily:F.sans, fontSize:11, marginBottom:12, padding:'8px 10px', background:'rgba(224,122,101,0.1)', borderRadius:4, border:'0.5px solid rgba(224,122,101,0.3)' }}>
+                  {error}
+                </div>
+              )}
+              <button
+                type="submit"
+                disabled={loading}
+                onClick={handleSubmit}
+                style={{ width:'100%', background:'linear-gradient(135deg,#7A5E1A,#C8A951)', color:C.bg, border:'none', padding:'11px', borderRadius:4, fontSize:11, fontWeight:700, cursor:loading?'not-allowed':'pointer', fontFamily:F.sans, letterSpacing:2, textTransform:'uppercase', opacity:loading?0.7:1 }}
+              >
+                {loading ? 'Mise à jour...' : 'Mettre à jour le mot de passe'}
               </button>
             </form>
           )}
-          {success && <div style={{ textAlign:'center', color:C.successTxt, fontFamily:F.sans, fontSize:12 }}>Redirection en cours...</div>}
+          {success && (
+            <div style={{ textAlign:'center', color:C.successTxt, fontFamily:F.sans, fontSize:12, marginTop:8 }}>
+              Redirection vers la connexion...
+            </div>
+          )}
         </div>
       </div>
     </div>
   );
 };
+
 
 export default function App() {
   injectGlobal();
@@ -455,22 +484,21 @@ export default function App() {
   const [showPasswordReset, setShowPasswordReset] = useState(false);
 
   useEffect(() => {
-    // Check if this is a password recovery link FIRST, before loading user
-    const hashParams = new URLSearchParams(window.location.hash.substring(1));
-    if (hashParams.get('type') === 'recovery') {
-      setShowPasswordReset(true);
-      setLoading(false);
-      // Clear the hash to avoid issues
-      window.history.replaceState(null, '', window.location.pathname);
-    } else {
-      getCurrentUser().then(u => {
-        setUser(u);
-        setLoading(false);
-      });
-    }
+    // Let Supabase process the URL hash first (handles #access_token + type=recovery)
+    // onAuthStateChange will fire PASSWORD_RECOVERY with a valid session
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (event === 'PASSWORD_RECOVERY') {
+        // Session is now active - show the reset form
         setShowPasswordReset(true);
+        setLoading(false);
+        return;
+      }
+      if (event === 'SIGNED_IN' && session?.user) {
+        // Only load user if we're not in password recovery mode
+        if (!showPasswordReset) {
+          const u = await getCurrentUser();
+          setUser(u);
+        }
         setLoading(false);
         return;
       }
@@ -482,6 +510,16 @@ export default function App() {
       }
       setLoading(false);
     });
+
+    // Also load user on mount for existing sessions (non-recovery)
+    const hash = window.location.hash;
+    if (!hash.includes('type=recovery')) {
+      getCurrentUser().then(u => {
+        setUser(u);
+        setLoading(false);
+      });
+    }
+
     return () => subscription.unsubscribe();
   }, []);
 
