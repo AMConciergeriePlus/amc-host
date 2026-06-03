@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase, getCurrentUser } from './lib/supabase';
+import Appartements from './modules/Appartements';
 
 // ── PALETTE & FONTS ───────────────────────────────────────────────────
 const C = {
@@ -42,12 +43,6 @@ const injectGlobal = () => {
       -webkit-background-clip: text; -webkit-text-fill-color: transparent;
       background-clip: text; animation: shimmer 4s linear infinite;
     }
-    .login-btn { transition: opacity .15s, transform .1s; }
-    .login-btn:hover:not(:disabled) { opacity: 0.9; transform: translateY(-1px); }
-    .login-input { transition: border-color .15s; }
-    .login-input:focus { border-color: #C8A951 !important; outline: none; }
-    .forgot-link { cursor: pointer; transition: color .15s; }
-    .forgot-link:hover { color: #C8A951 !important; }
   `;
   document.head.appendChild(s);
 };
@@ -81,61 +76,19 @@ const Logo = ({ size = 32 }) => (
 
 // ── PAGE LOGIN ────────────────────────────────────────────────────────
 const PageLogin = ({ onLogin }) => {
-  const [email, setEmail]           = useState('');
-  const [password, setPassword]     = useState('');
-  const [error, setError]           = useState('');
-  const [success, setSuccess]       = useState('');
-  const [loading, setLoading]       = useState(false);
+  const [email, setEmail]       = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError]       = useState('');
+  const [loading, setLoading]   = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!email || !password) {
-      setError('Veuillez remplir tous les champs.');
-      return;
-    }
-    setLoading(true);
-    setError('');
-    setSuccess('');
+    setLoading(true); setError('');
     try {
-      const { data, error: authError } = await supabase.auth.signInWithPassword({ email, password });
-      if (authError) {
-        if (authError.message.includes('Invalid login credentials')) {
-          setError('Email ou mot de passe incorrect.');
-        } else if (authError.message.includes('Email not confirmed')) {
-          setError('Votre email n\'est pas encore confirmé. Vérifiez votre boîte mail.');
-        } else {
-          setError(authError.message || 'Erreur de connexion.');
-        }
-      } else if (data.user) {
-        const u = await getCurrentUser();
-        onLogin(u);
-      }
+      const { data } = await supabase.auth.signInWithPassword({ email, password });
+      if (data.user) onLogin(data.user);
     } catch (err) {
-      setError('Erreur de connexion. Vérifiez vos identifiants.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleForgotPassword = async () => {
-    if (!email) {
-      setError('Entrez votre email ci-dessus pour réinitialiser votre mot de passe.');
-      return;
-    }
-    setLoading(true);
-    setError('');
-    setSuccess('');
-    try {
-      const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: 'https://amc-host.vercel.app',
-      });
-      if (resetError) {
-        setError('Erreur lors de l\'envoi. Vérifiez votre email.');
-      } else {
-        setSuccess('Email de réinitialisation envoyé ! Vérifiez votre boîte mail (et les spams). Le lien est valide 24h.');
-      }
-    } catch (err) {
-      setError('Erreur lors de l\'envoi.');
+      setError('Email ou mot de passe incorrect.');
     } finally {
       setLoading(false);
     }
@@ -149,68 +102,29 @@ const PageLogin = ({ onLogin }) => {
           <div style={{ fontFamily:F.serif, fontSize:24, letterSpacing:4, color:C.white, textTransform:'uppercase', marginTop:12, fontWeight:500 }}>AMC HOST</div>
           <div style={{ fontFamily:F.sans, fontSize:9, letterSpacing:4, color:C.gold, textTransform:'uppercase', marginTop:4 }}>Channel Manager</div>
         </div>
-
-        <div style={{ background:C.card, border:'0.5px solid #3A2E10', borderRadius:10, padding:28 }}>
+        <form onSubmit={handleSubmit} style={{ background:C.card, border:`0.5px solid ${C.borderGold}`, borderRadius:10, padding:28 }}>
           <div style={{ fontFamily:F.serif, fontSize:18, color:C.white, marginBottom:20, textAlign:'center', letterSpacing:.5 }}>Connexion</div>
-
-          <form onSubmit={handleSubmit} noValidate>
-            <div style={{ marginBottom:14 }}>
-              <label style={{ fontFamily:F.sans, fontSize:9, color:C.muted, letterSpacing:2, textTransform:'uppercase', display:'block', marginBottom:5 }}>Email</label>
+          {[
+            { label:'Email', value:email, set:setEmail, type:'email', placeholder:'amconciergerieplus@gmail.com' },
+            { label:'Mot de passe', value:password, set:setPassword, type:'password', placeholder:'••••••••' },
+          ].map((f, i) => (
+            <div key={i} style={{ marginBottom:14 }}>
+              <label style={{ fontFamily:F.sans, fontSize:9, color:C.muted, letterSpacing:2, textTransform:'uppercase', display:'block', marginBottom:5 }}>{f.label}</label>
               <input
-                className="login-input"
-                type="email"
-                value={email}
-                onChange={e => setEmail(e.target.value)}
-                placeholder="amconciergerieplus@gmail.com"
-                autoComplete="email"
-                style={{ width:'100%', background:C.surface, border:'0.5px solid #222222', color:C.white, padding:'10px 12px', borderRadius:4, fontFamily:F.sans, fontSize:12 }}
+                type={f.type} value={f.value} onChange={e => f.set(e.target.value)}
+                placeholder={f.placeholder} required
+                style={{ width:'100%', background:C.surface, border:`0.5px solid ${C.border}`, color:C.white, padding:'10px 12px', borderRadius:4, fontFamily:F.sans, fontSize:12, outline:'none' }}
               />
             </div>
-
-            <div style={{ marginBottom:6 }}>
-              <label style={{ fontFamily:F.sans, fontSize:9, color:C.muted, letterSpacing:2, textTransform:'uppercase', display:'block', marginBottom:5 }}>Mot de passe</label>
-              <input
-                className="login-input"
-                type="password"
-                value={password}
-                onChange={e => setPassword(e.target.value)}
-                placeholder="••••••••"
-                autoComplete="current-password"
-                style={{ width:'100%', background:C.surface, border:'0.5px solid #222222', color:C.white, padding:'10px 12px', borderRadius:4, fontFamily:F.sans, fontSize:12 }}
-              />
-            </div>
-
-            <div style={{ textAlign:'right', marginBottom:16 }}>
-              <span
-                className="forgot-link"
-                onClick={handleForgotPassword}
-                style={{ fontFamily:F.sans, fontSize:10, color:C.muted, textDecoration:'underline' }}>
-                Mot de passe oublié ?
-              </span>
-            </div>
-
-            {error && (
-              <div style={{ fontFamily:F.sans, fontSize:11, color:C.dangerTxt, marginBottom:12, textAlign:'center', background:'#2A0E0A', border:'0.5px solid #E07A6540', borderRadius:4, padding:'8px 12px', lineHeight:1.5 }}>
-                ⚠ {error}
-              </div>
-            )}
-
-            {success && (
-              <div style={{ fontFamily:F.sans, fontSize:11, color:C.successTxt, marginBottom:12, textAlign:'center', background:'#0A1F14', border:'0.5px solid #5BBF8A40', borderRadius:4, padding:'8px 12px', lineHeight:1.5 }}>
-                ✓ {success}
-              </div>
-            )}
-
-            <button
-              type="submit"
-              disabled={loading}
-              className="login-btn"
-              style={{ width:'100%', background:'linear-gradient(135deg,#7A5E1A,#C8A951)', color:C.bg, border:'none', padding:'11px', borderRadius:4, fontSize:11, fontWeight:700, cursor:loading?'not-allowed':'pointer', fontFamily:F.sans, letterSpacing:2, textTransform:'uppercase', opacity:loading?0.7:1 }}>
-              {loading ? 'Connexion...' : 'Se connecter'}
-            </button>
-          </form>
-        </div>
-
+          ))}
+          {error && (
+            <div style={{ fontFamily:F.sans, fontSize:11, color:C.dangerTxt, marginBottom:12, textAlign:'center' }}>{error}</div>
+          )}
+          <button type="submit" disabled={loading}
+            style={{ width:'100%', background:`linear-gradient(135deg,${C.goldDark},${C.gold})`, color:C.bg, border:'none', padding:'11px', borderRadius:4, fontSize:11, fontWeight:700, cursor:loading?'not-allowed':'pointer', fontFamily:F.sans, letterSpacing:2, textTransform:'uppercase', marginTop:4, opacity:loading?.7:1 }}>
+            {loading ? 'Connexion...' : 'Se connecter'}
+          </button>
+        </form>
         <div style={{ textAlign:'center', marginTop:16, fontFamily:F.sans, fontSize:10, color:C.muted }}>
           AM Conciergerie Plus · Usage privé
         </div>
@@ -266,6 +180,7 @@ const Dashboard = ({ user }) => {
   const [apparts, setApparts]   = useState([]);
   const [reservations, setRes]  = useState([]);
   const [loading, setLoading]   = useState(true);
+  const role = user?.profile?.role || 'admin';
 
   useEffect(() => {
     const load = async () => {
@@ -286,7 +201,7 @@ const Dashboard = ({ user }) => {
 
   return (
     <div className="fade">
-      <div style={{ marginBottom:24, borderBottom:'0.5px solid #3A2E10', paddingBottom:14, display:'flex', alignItems:'flex-end', justifyContent:'space-between' }}>
+      <div style={{ marginBottom:24, borderBottom:`0.5px solid #3A2E10`, paddingBottom:14, display:'flex', alignItems:'flex-end', justifyContent:'space-between' }}>
         <div>
           <h1 style={{ fontFamily:F.serif, fontSize:26, fontWeight:300, color:C.white, letterSpacing:1 }}>
             Bonjour, <span className="shimmer">Aloyse</span>
@@ -297,7 +212,6 @@ const Dashboard = ({ user }) => {
           </p>
         </div>
       </div>
-
       {loading ? (
         <div style={{ textAlign:'center', padding:'40px 0', fontFamily:F.sans, fontSize:12, color:C.muted }}>Chargement...</div>
       ) : (
@@ -315,7 +229,6 @@ const Dashboard = ({ user }) => {
               </div>
             ))}
           </div>
-
           {apparts.length > 0 && (
             <div style={{ marginBottom:20 }}>
               <div style={{ fontFamily:F.sans, fontSize:9, color:C.gold, letterSpacing:2.5, textTransform:'uppercase', marginBottom:10 }}>Appartements</div>
@@ -330,7 +243,6 @@ const Dashboard = ({ user }) => {
               </div>
             </div>
           )}
-
           {apparts.length === 0 && (
             <div style={{ background:C.card, border:`0.5px solid ${C.borderGold}`, borderRadius:6, padding:'24px', textAlign:'center' }}>
               <div style={{ fontFamily:F.serif, fontSize:16, color:C.gold, marginBottom:8 }}>✦ Bienvenue sur AMC HOST</div>
@@ -339,7 +251,6 @@ const Dashboard = ({ user }) => {
               </div>
             </div>
           )}
-
           {reservations.length > 0 && (
             <div style={{ background:C.card, border:`0.5px solid ${C.border}`, borderRadius:6, padding:'14px 16px' }}>
               <div style={{ fontFamily:F.sans, fontSize:9, color:C.gold, letterSpacing:2.5, textTransform:'uppercase', marginBottom:12 }}>Réservations récentes</div>
@@ -362,152 +273,26 @@ const Dashboard = ({ user }) => {
 };
 
 // ── APP PRINCIPALE ────────────────────────────────────────────────────
-
-// ── PAGE RESET MOT DE PASSE ──────────────────────────────────────────
-const PagePasswordReset = ({ onDone }) => {
-  const [newPassword, setNewPassword] = useState('');
-  const [confirm, setConfirm] = useState('');
-  const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [success, setSuccess] = useState(false);
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    
-    if (!newPassword || newPassword.length < 6) {
-      setError('Le mot de passe doit contenir au moins 6 caractères.');
-      return;
-    }
-    if (newPassword !== confirm) {
-      setError('Les mots de passe ne correspondent pas.');
-      return;
-    }
-    
-    setLoading(true);
-    setError('');
-    
-    try {
-      // Check if we have an active session
-      const { data: sessionData } = await supabase.auth.getSession();
-      if (!sessionData?.session) {
-        setError('Session expirée. Veuillez redemander un lien de réinitialisation.');
-        setLoading(false);
-        return;
-      }
-      
-      const { error: updateError } = await supabase.auth.updateUser({ password: newPassword });
-      
-      if (updateError) {
-        setError(updateError.message || 'Erreur lors de la mise à jour.');
-        setLoading(false);
-      } else {
-        setSuccess(true);
-        await supabase.auth.signOut();
-        setTimeout(() => onDone(), 2000);
-      }
-    } catch (err) {
-      setError('Erreur inattendue : ' + (err.message || 'veuillez réessayer.'));
-      setLoading(false);
-    }
-  };
-
-  return (
-    <div style={{ minHeight:'100vh', background:C.bg, display:'flex', alignItems:'center', justifyContent:'center', padding:16 }}>
-      <div style={{ width:'100%', maxWidth:400 }}>
-        <div style={{ textAlign:'center', marginBottom:32 }}>
-          <Logo size={56}/>
-          <div style={{ fontFamily:F.serif, fontSize:24, letterSpacing:4, color:C.white, textTransform:'uppercase', marginTop:12, fontWeight:500 }}>AMC HOST</div>
-        </div>
-        <div style={{ background:C.card, border:'0.5px solid #3A2E10', borderRadius:10, padding:28 }}>
-          <div style={{ fontFamily:F.serif, fontSize:18, color:C.white, marginBottom:20, textAlign:'center', letterSpacing:.5 }}>
-            {success ? '✓ Mot de passe mis à jour !' : 'Créer votre mot de passe'}
-          </div>
-          {!success && (
-            <form onSubmit={handleSubmit} noValidate>
-              <div style={{ marginBottom:14 }}>
-                <label style={{ fontFamily:F.sans, fontSize:9, color:C.muted, letterSpacing:2, textTransform:'uppercase', display:'block', marginBottom:5 }}>Nouveau mot de passe</label>
-                <input
-                  className="login-input"
-                  type="password"
-                  value={newPassword}
-                  onChange={e => setNewPassword(e.target.value)}
-                  placeholder="••••••••"
-                  autoFocus
-                  style={{ width:'100%', background:'#1a1a1a', border:'0.5px solid #3A2E10', borderRadius:4, padding:'10px 12px', color:C.white, fontFamily:F.sans, fontSize:12, boxSizing:'border-box' }}
-                />
-              </div>
-              <div style={{ marginBottom:20 }}>
-                <label style={{ fontFamily:F.sans, fontSize:9, color:C.muted, letterSpacing:2, textTransform:'uppercase', display:'block', marginBottom:5 }}>Confirmer le mot de passe</label>
-                <input
-                  className="login-input"
-                  type="password"
-                  value={confirm}
-                  onChange={e => setConfirm(e.target.value)}
-                  placeholder="••••••••"
-                  style={{ width:'100%', background:'#1a1a1a', border:'0.5px solid #3A2E10', borderRadius:4, padding:'10px 12px', color:C.white, fontFamily:F.sans, fontSize:12, boxSizing:'border-box' }}
-                />
-              </div>
-              {error && (
-                <div style={{ color:C.dangerTxt, fontFamily:F.sans, fontSize:11, marginBottom:12, padding:'8px 10px', background:'rgba(224,122,101,0.1)', borderRadius:4, border:'0.5px solid rgba(224,122,101,0.3)' }}>
-                  {error}
-                </div>
-              )}
-              <button
-                type="submit"
-                disabled={loading}
-                onClick={handleSubmit}
-                style={{ width:'100%', background:'linear-gradient(135deg,#7A5E1A,#C8A951)', color:C.bg, border:'none', padding:'11px', borderRadius:4, fontSize:11, fontWeight:700, cursor:loading?'not-allowed':'pointer', fontFamily:F.sans, letterSpacing:2, textTransform:'uppercase', opacity:loading?0.7:1 }}
-              >
-                {loading ? 'Mise à jour...' : 'Mettre à jour le mot de passe'}
-              </button>
-            </form>
-          )}
-          {success && (
-            <div style={{ textAlign:'center', color:C.successTxt, fontFamily:F.sans, fontSize:12, marginTop:8 }}>
-              Redirection vers la connexion...
-            </div>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-};
-
-
 export default function App() {
   injectGlobal();
   const [user, setUser]           = useState(null);
   const [loading, setLoading]     = useState(true);
   const [page, setPage]           = useState('dashboard');
   const [sidebarOpen, setSidebar] = useState(true);
-  const [showPasswordReset, setShowPasswordReset] = useState(false);
 
   useEffect(() => {
+    getCurrentUser().then(u => {
+      setUser(u);
+      setLoading(false);
+    });
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (event === 'PASSWORD_RECOVERY') {
-        setShowPasswordReset(true);
-        setLoading(false);
-        return;
-      }
       if (session?.user) {
         const u = await getCurrentUser();
         setUser(u);
       } else {
         setUser(null);
       }
-      setLoading(false);
     });
-
-    // Load existing session on mount (non-recovery flows)
-    const hash = window.location.hash;
-    if (!hash.includes('type=recovery')) {
-      getCurrentUser().then(u => {
-        setUser(u);
-        setLoading(false);
-      });
-    }
-
     return () => subscription.unsubscribe();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -522,20 +307,19 @@ export default function App() {
     );
   }
 
-  if (showPasswordReset) return <PagePasswordReset onDone={() => { setShowPasswordReset(false); setUser(null); }}/>;
-  if (!user) return <PageLogin onLogin={u => setUser(u)}/>;
+  if (!user) return <PageLogin onLogin={async () => { const u = await getCurrentUser(); setUser(u); }}/>;
 
   const role = user?.profile?.role || 'admin';
 
   const renderPage = () => {
     switch (page) {
       case 'dashboard':    return <Dashboard user={user}/>;
-      case 'appartements': return <PagePlaceholder title="Appartements" icon="⌂"/>;
+      case 'appartements': return <Appartements/>;
       case 'calendrier':   return <PagePlaceholder title="Calendrier" icon="▦"/>;
       case 'reservations': return <PagePlaceholder title="Réservations" icon="◈"/>;
       case 'menage':       return <PagePlaceholder title="Ménage & équipes" icon="✦"/>;
       case 'messages':     return <PagePlaceholder title="Messages" icon="◻"/>;
-      case 'livrets':      return <PagePlaceholder title="Livrets d\'accueil" icon="◉"/>;
+      case 'livrets':      return <PagePlaceholder title="Livrets d'accueil" icon="◉"/>;
       case 'compta':       return <PagePlaceholder title="Comptabilité" icon="◆"/>;
       case 'facturation':  return <PagePlaceholder title="Facturation" icon="▣"/>;
       case 'proprio':      return <PagePlaceholder title="Propriétaires" icon="👤"/>;
@@ -550,6 +334,7 @@ export default function App() {
 
   return (
     <div style={{ fontFamily:F.sans, background:C.bg, color:C.white, minHeight:'100vh', display:'flex', flexDirection:'column' }}>
+      {/* TOPBAR */}
       <div style={{ background:C.surface, borderBottom:`0.5px solid ${C.border}`, padding:'0 20px', height:54, display:'flex', alignItems:'center', justifyContent:'space-between', position:'sticky', top:0, zIndex:100, flexShrink:0 }}>
         <div style={{ display:'flex', alignItems:'center', gap:12 }}>
           <button onClick={() => setSidebar(!sidebarOpen)} style={{ background:'transparent', border:'none', color:C.muted, cursor:'pointer', fontSize:16, padding:'4px', lineHeight:1 }}>☰</button>
@@ -574,6 +359,7 @@ export default function App() {
       </div>
 
       <div style={{ display:'flex', flex:1, overflow:'hidden' }}>
+        {/* SIDEBAR */}
         <div style={{ width:sidebarOpen?210:0, background:C.surface, borderRight:`0.5px solid ${C.border}`, display:'flex', flexDirection:'column', flexShrink:0, overflow:'hidden', transition:'width .2s ease' }}>
           <div style={{ flex:1, overflowY:'auto', padding:'14px 0' }}>
             {NAV.map((section, si) => (
@@ -602,10 +388,11 @@ export default function App() {
           </div>
         </div>
 
+        {/* MAIN */}
         <div style={{ flex:1, padding:'24px 28px', overflowY:'auto', background:C.bg }}>
           {renderPage()}
         </div>
       </div>
     </div>
   );
-                        }
+}
