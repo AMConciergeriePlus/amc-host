@@ -175,7 +175,7 @@ export default function Appartements() {
     setApparts(ap||[]);setProprios(pr||[]);setEquipes(eq||[]);
     setLoading(false);
   };
-  useEffect(()=>{load();},[]);
+  useEffect(()=>{load();},[]);  // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleDelete=async(id)=>{
     await supabase.from('appartements').delete().eq('id',id);
