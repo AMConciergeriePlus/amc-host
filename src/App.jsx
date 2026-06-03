@@ -484,21 +484,9 @@ export default function App() {
   const [showPasswordReset, setShowPasswordReset] = useState(false);
 
   useEffect(() => {
-    // Let Supabase process the URL hash first (handles #access_token + type=recovery)
-    // onAuthStateChange will fire PASSWORD_RECOVERY with a valid session
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (event === 'PASSWORD_RECOVERY') {
-        // Session is now active - show the reset form
         setShowPasswordReset(true);
-        setLoading(false);
-        return;
-      }
-      if (event === 'SIGNED_IN' && session?.user) {
-        // Only load user if we're not in password recovery mode
-        if (!showPasswordReset) {
-          const u = await getCurrentUser();
-          setUser(u);
-        }
         setLoading(false);
         return;
       }
@@ -511,7 +499,7 @@ export default function App() {
       setLoading(false);
     });
 
-    // Also load user on mount for existing sessions (non-recovery)
+    // Load existing session on mount (non-recovery flows)
     const hash = window.location.hash;
     if (!hash.includes('type=recovery')) {
       getCurrentUser().then(u => {
@@ -521,7 +509,7 @@ export default function App() {
     }
 
     return () => subscription.unsubscribe();
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (loading) {
     return (
