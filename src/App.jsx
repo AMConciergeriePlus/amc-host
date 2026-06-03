@@ -281,21 +281,7 @@ export default function App() {
   const [sidebarOpen, setSidebar] = useState(true);
 
   useEffect(() => {
-    // Use getSession - simpler and more reliable than getCurrentUser
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
-      if (session?.user) {
-        try {
-          const u = await getCurrentUser();
-          setUser(u || session.user);
-        } catch(e) {
-          setUser(session.user);
-        }
-      }
-      setLoading(false);
-    }).catch(() => {
-      setLoading(false);
-    });
-
+    // onAuthStateChange fires immediately with INITIAL_SESSION event
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (session?.user) {
         try {
@@ -306,12 +292,18 @@ export default function App() {
         }
       } else {
         setUser(null);
-        setLoading(false);
       }
+      setLoading(false);
     });
 
-    return () => subscription.unsubscribe();
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps; // eslint-disable-line react-hooks/exhaustive-deps
+    // Safety timeout in case onAuthStateChange never fires
+    const timer = setTimeout(() => setLoading(false), 3000);
+
+    return () => {
+      subscription.unsubscribe();
+      clearTimeout(timer);
+    };
+  }, []); // eslint-disable-line react-hooks/exhaustive-depsxhaustive-deps; // eslint-disable-line react-hooks/exhaustive-deps
 
   if (loading) {
     return (
