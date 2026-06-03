@@ -281,20 +281,37 @@ export default function App() {
   const [sidebarOpen, setSidebar] = useState(true);
 
   useEffect(() => {
-    getCurrentUser().then(u => {
-      setUser(u);
+    // Use getSession - simpler and more reliable than getCurrentUser
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
+      if (session?.user) {
+        try {
+          const u = await getCurrentUser();
+          setUser(u || session.user);
+        } catch(e) {
+          setUser(session.user);
+        }
+      }
+      setLoading(false);
+    }).catch(() => {
       setLoading(false);
     });
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (session?.user) {
-        const u = await getCurrentUser();
-        setUser(u);
+        try {
+          const u = await getCurrentUser();
+          setUser(u || session.user);
+        } catch(e) {
+          setUser(session.user);
+        }
       } else {
         setUser(null);
+        setLoading(false);
       }
     });
+
     return () => subscription.unsubscribe();
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps; // eslint-disable-line react-hooks/exhaustive-deps
 
   if (loading) {
     return (
