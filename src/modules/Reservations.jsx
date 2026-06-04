@@ -6,4 +6,4 @@ export default function Reservations() {
       <div style={{fontFamily:"'Montserrat',sans-serif",fontSize:12,color:'#5A5550',maxWidth:400,margin:'0 auto',lineHeight:1.7}}>Module en cours de développement.</div>
     </div>
   );
-      }
+}
