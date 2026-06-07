@@ -1,80 +1,186 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
-const C = {bg:'#080808',surface:'#0F0F0F',card:'#131313',border:'#222222',borderGold:'#3A2E10',gold:'#C8A951',goldDark:'#7A5E1A',white:'#FAF6EE',muted:'#5A5550',mutedMid:'#7A7470',successTxt:'#5BBF8A',warn:'#D4A52A',dangerTxt:'#E07A65',airbnb:'#FF5A5F',booking:'#003B95'};
-const F = {serif:"'Cormorant Garamond','Palatino Linotype',serif",sans:"'Montserrat','Trebuchet MS',sans-serif"};
-const MONTHS = ['Janvier','Fevrier','Mars','Avril','Mai','Juin','Juillet','Aout','Septembre','Octobre','Novembre','Decembre'];
-const DAYS = ['Lun','Mar','Mer','Jeu','Ven','Sam','Dim'];
-export default function Calendrier() {
-  const [apparts,setApparts]=useState([]);
-  const [reservations,setRes]=useState([]);
-  const [loading,setLoading]=useState(true);
-  const [current,setCurrent]=useState(new Date());
-  const [selected,setSelected]=useState(null);
-  useEffect(()=>{
-    const load=async()=>{
-      const [{data:ap},{data:res}]=await Promise.all([
-        supabase.from('appartements').select('*').order('created_at'),
-        supabase.from('reservations').select('*,appartements(nom,color)').order('checkin'),
-      ]);
-      setApparts(ap||[]);setRes(res||[]);setLoading(false);
-    };
-    load();
-  },[]); // eslint-disable-line
-  const year=current.getFullYear(),month=current.getMonth();
-  const firstDay=new Date(year,month,1).getDay();
-  const offset=firstDay===0?6:firstDay-1;
-  const daysInMonth=new Date(year,month+1,0).getDate();
-  const pad=n=>String(n).padStart(2,'0');
-  const getResForDay=day=>{
-    const d=year+'-'+pad(month+1)+'-'+pad(day);
-    return reservations.filter(r=>r.checkin<=d&&r.checkout>d);
+
+const C = {
+  bg:"#080808",surface:"#0F0F0F",card:"#131313",border:"#222222",
+  borderGold:"#3A2E10",gold:"#C8A951",goldDark:"#7A5E1A",
+  white:"#FAF6EE",muted:"#5A5550",successTxt:"#5BBF8A",
+  dangerTxt:"#E07A65",warn:"#D4A52A",airbnb:"#FF5A5F",booking:"#003B95",
+};
+const F={serif:"'Cormorant Garamond',serif",sans:"'Montserrat',sans-serif"};
+const MOIS=["Janvier","Février","Mars","Avril","Mai","Juin","Juillet","Août","Septembre","Octobre","Novembre","Décembre"];
+const JOURS=["L","M","M","J","V","S","D"];
+const pad2=n=>String(n).padStart(2,"0");
+const dateStr=(y,m,d)=>`${y}-${pad2(m+1)}-${pad2(d)}`;
+
+export default function Calendrier(){
+  const[apparts,setApparts]=useState([]);
+  const[reservations,setReservations]=useState([]);
+  const[filterAp,setFilterAp]=useState("tous");
+  const[year,setYear]=useState(new Date().getFullYear());
+  const[month,setMonth]=useState(new Date().getMonth());
+  const[loading,setLoading]=useState(true);
+  const[showBlocage,setShowBlocage]=useState(null);
+  const[blocageData,setBlocageData]=useState({debut:"",fin:"",motif:""});
+  const[saving,setSaving]=useState(false);
+  const load=async()=>{
+    setLoading(true);
+    const[{data:ap},{data:res}]=await Promise.all([
+      supabase.from('appartements').select('id,nom,nom_long,color').order('nom'),
+      supabase.from('reservations').select('*,appartements(nom,color)').neq('statut','annulé'),
+    ]);
+    setApparts(ap||[]);setReservations(res||[]);
+    setLoading(false);
   };
-  if(loading) return <div style={{textAlign:'center',padding:'60px 0',fontFamily:F.sans,fontSize:12,color:C.muted}}>Chargement...</div>;
-  return (
-    <div className='fade'>
-      <div style={{marginBottom:24,borderBottom:'0.5px solid '+C.borderGold,paddingBottom:14,display:'flex',alignItems:'flex-end',justifyContent:'space-between'}}>
-        <div><h1 style={{fontFamily:F.serif,fontSize:26,fontWeight:300,color:C.white,letterSpacing:1}}>Calendrier</h1>
-        <p style={{fontFamily:F.sans,fontSize:11,color:C.muted,marginTop:4}}>{MONTHS[month]} {year} - {reservations.length} reservation{reservations.length>1?'s':''}</p></div>
-        <div style={{display:'flex',gap:8}}>
-          <button onClick={()=>setCurrent(new Date(year,month-1,1))} style={{background:'transparent',border:'0.5px solid '+C.border,color:C.muted,padding:'6px 12px',borderRadius:3,cursor:'pointer',fontFamily:F.sans,fontSize:12}}>prev</button>
-          <button onClick={()=>setCurrent(new Date())} style={{background:'linear-gradient(135deg,'+C.goldDark+','+C.gold+')',border:'none',color:C.bg,padding:'6px 12px',borderRadius:3,cursor:'pointer',fontFamily:F.sans,fontSize:10,fontWeight:600}}>Aujourd'hui</button>
-          <button onClick={()=>setCurrent(new Date(year,month+1,1))} style={{background:'transparent',border:'0.5px solid '+C.border,color:C.muted,padding:'6px 12px',borderRadius:3,cursor:'pointer',fontFamily:F.sans,fontSize:12}}>next</button>
+  useEffect(()=>{load();},[]);
+  const daysInMonth=new Date(year,month+1,0).getDate();
+  const firstDay=()=>{const d=new Date(year,month,1).getDay();return d===0?6:d-1;};
+  const totalCells=Math.ceil((firstDay()+daysInMonth)/7)*7;
+  const todayStr=dateStr(new Date().getFullYear(),new Date().getMonth(),new Date().getDate());
+  const getResForDay=(d)=>{
+    const ds=dateStr(year,month,d);
+    const list=filterAp==="tous"?reservations:reservations.filter(r=>r.appart_id===filterAp);
+    return list.filter(r=>ds>=r.checkin&&ds<r.checkout);
+  };
+  const bloquerDates=async()=>{
+    if(!blocageData.debut||!blocageData.fin||!showBlocage)return;
+    setSaving(true);
+    await supabase.from('reservations').insert({
+      appart_id:showBlocage,
+      source:"blocage",
+      voyageur_nom:blocageData.motif||"Bloqué",
+      checkin:blocageData.debut,
+      checkout:blocageData.fin,
+      statut:"bloqué",
+      montant:0,
+    });
+    setSaving(false);setShowBlocage(null);setBlocageData({debut:"",fin:"",motif:""});
+    load();
+  };
+  const navPrev=()=>{if(month===0){setMonth(11);setYear(y=>y-1);}else setMonth(m=>m-1);};
+  const navNext=()=>{if(month===11){setMonth(0);setYear(y=>y+1);}else setMonth(m=>m+1);};
+  if(loading) return <div style={{textAlign:"center",padding:"60px 0",fontFamily:F.sans,fontSize:12,color:C.muted}}>Chargement...</div>;
+  return(
+    <div className="fade">
+      <div style={{marginBottom:24,borderBottom:`0.5px solid ${C.borderGold}`,paddingBottom:14}}>
+        <h1 style={{fontFamily:F.serif,fontSize:26,fontWeight:300,color:C.white,letterSpacing:1}}>Calendrier</h1>
+        <p style={{fontFamily:F.sans,fontSize:11,color:C.muted,marginTop:4}}>Gestion multi-appartements</p>
+      </div>
+      {/* Contrôles */}
+      <div style={{display:"flex",gap:10,marginBottom:16,flexWrap:"wrap",alignItems:"center"}}>
+        <div style={{display:"flex",alignItems:"center",gap:8,background:C.card,border:`0.5px solid ${C.border}`,borderRadius:4,padding:"5px 10px"}}>
+          <button onClick={navPrev} style={{background:"transparent",border:"none",color:C.gold,cursor:"pointer",fontSize:16}}>‹</button>
+          <span style={{fontFamily:F.serif,fontSize:14,color:C.white,minWidth:160,textAlign:"center"}}>{MOIS[month]} {year}</span>
+          <button onClick={navNext} style={{background:"transparent",border:"none",color:C.gold,cursor:"pointer",fontSize:16}}>›</button>
         </div>
-      </div>
-      <div style={{display:'grid',gridTemplateColumns:'repeat(7,1fr)',gap:4,marginBottom:8}}>
-        {DAYS.map(d=><div key={d} style={{fontFamily:F.sans,fontSize:9,color:C.muted,textAlign:'center',letterSpacing:1,padding:'4px 0'}}>{d}</div>)}
-      </div>
-      <div style={{display:'grid',gridTemplateColumns:'repeat(7,1fr)',gap:4}}>
-        {Array(offset).fill(null).map((_,i)=><div key={'e'+i}/>)}
-        {Array(daysInMonth).fill(null).map((_,i)=>{
-          const day=i+1;
-          const todayD=new Date();
-          const isToday=todayD.getDate()===day&&todayD.getMonth()===month&&todayD.getFullYear()===year;
-          const dayRes=getResForDay(day);
-          return (
-            <div key={day} className='day-cell' onClick={()=>setSelected(selected===day?null:day)}
-              style={{background:selected===day?C.surface:C.card,border:'0.5px solid '+(selected===day?C.gold:C.border),minHeight:70,padding:'6px 6px 4px'}}>
-              <div style={{fontFamily:F.sans,fontSize:11,color:isToday?C.gold:C.white,fontWeight:isToday?600:400,marginBottom:4}}>{day}</div>
-              {dayRes.slice(0,2).map(r=>(
-                <div key={r.id} className='res-block' style={{background:(r.appartements?.color||C.gold)+'22',color:r.appartements?.color||C.gold}}>
-                  {r.appartements?.nom||'?'} - {r.voyageur_nom||'?'}
-                </div>
-              ))}
-              {dayRes.length>2&&<div style={{fontFamily:F.sans,fontSize:8,color:C.muted}}>+{dayRes.length-2}</div>}
-            </div>
-          );
-        })}
-      </div>
-      {apparts.length>0&&(
-        <div style={{marginTop:16,display:'flex',gap:12,flexWrap:'wrap'}}>
-          {apparts.map(ap=>(
-            <div key={ap.id} style={{display:'flex',alignItems:'center',gap:6}}>
-              <div style={{width:10,height:10,borderRadius:2,background:ap.color||C.gold}}/>
-              <span style={{fontFamily:F.sans,fontSize:10,color:C.muted}}>{ap.nom}</span>
-            </div>
+        <div style={{display:"flex",gap:5,flexWrap:"wrap"}}>
+          <button onClick={()=>setFilterAp("tous")} style={{background:filterAp==="tous"?`${C.gold}15`:"transparent",border:`0.5px solid ${filterAp==="tous"?C.gold:C.border}`,color:filterAp==="tous"?C.gold:C.muted,padding:"4px 10px",borderRadius:3,fontSize:9,cursor:"pointer",fontFamily:F.sans,fontWeight:600,textTransform:"uppercase"}}>Tous</button>
+          {apparts.map(a=>(
+            <button key={a.id} onClick={()=>setFilterAp(a.id)} style={{background:filterAp===a.id?`${a.color}15`:"transparent",border:`0.5px solid ${filterAp===a.id?a.color:C.border}`,color:filterAp===a.id?a.color:C.muted,padding:"4px 10px",borderRadius:3,fontSize:9,cursor:"pointer",fontFamily:F.sans,fontWeight:600,display:"flex",alignItems:"center",gap:4}}>
+              <div style={{width:5,height:5,borderRadius:"50%",background:a.color}}/>{a.nom}
+            </button>
           ))}
         </div>
+        {/* Bloquer des dates */}
+        {filterAp!=="tous"&&(
+          <button onClick={()=>setShowBlocage(filterAp)}
+            style={{background:"transparent",border:`0.5px solid ${C.dangerTxt}44`,color:C.dangerTxt,padding:"5px 12px",borderRadius:3,fontSize:9,cursor:"pointer",fontFamily:F.sans,fontWeight:600,letterSpacing:.5,textTransform:"uppercase"}}>
+            🚫 Bloquer des dates
+          </button>
+        )}
+      </div>
+      {/* Formulaire blocage */}
+      {showBlocage&&(
+        <div style={{background:C.card,border:`0.5px solid ${C.dangerTxt}44`,borderRadius:6,padding:"14px 16px",marginBottom:16}}>
+          <div style={{fontFamily:F.sans,fontSize:10,color:C.dangerTxt,fontWeight:600,marginBottom:10}}>🚫 Bloquer des dates — {apparts.find(a=>a.id===showBlocage)?.nom}</div>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:10,marginBottom:10}}>
+            {[{l:"Du",k:"debut",t:"date"},{l:"Au",k:"fin",t:"date"},{l:"Motif",k:"motif",t:"text"}].map(fi=>(
+              <div key={fi.k}>
+                <label style={{fontFamily:F.sans,fontSize:9,color:C.muted,letterSpacing:2,textTransform:"uppercase",display:"block",marginBottom:4}}>{fi.l}</label>
+                <input type={fi.t} value={blocageData[fi.k]} onChange={e=>setBlocageData(p=>({...p,[fi.k]:e.target.value}))}
+                  placeholder={fi.k==="motif"?"Travaux, usage perso...":""}
+                  style={{width:"100%",background:C.surface,border:`0.5px solid ${C.border}`,color:C.white,padding:"7px 9px",borderRadius:4,fontFamily:F.sans,fontSize:11,outline:"none"}}/>
+              </div>
+            ))}
+          </div>
+          <div style={{display:"flex",gap:8}}>
+            <button onClick={()=>setShowBlocage(null)} style={{background:"transparent",border:`0.5px solid ${C.border}`,color:C.muted,padding:"5px 12px",borderRadius:3,fontSize:9,cursor:"pointer",fontFamily:F.sans,letterSpacing:.5,textTransform:"uppercase"}}>Annuler</button>
+            <button onClick={bloquerDates} disabled={saving} style={{background:`linear-gradient(135deg,${C.goldDark},${C.gold})`,color:"#080808",border:"none",padding:"5px 12px",borderRadius:3,fontSize:9,cursor:"pointer",fontFamily:F.sans,fontWeight:600,letterSpacing:.5,textTransform:"uppercase"}}>
+              {saving?"Sauvegarde...":"Bloquer"}
+            </button>
+          </div>
+        </div>
       )}
+      {/* Calendrier */}
+      <div style={{background:C.card,border:`0.5px solid ${C.border}`,borderRadius:6,padding:"14px 16px",marginBottom:16}}>
+        <div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:2,marginBottom:4}}>
+          {JOURS.map((d,i)=><div key={i} style={{textAlign:"center",fontFamily:F.sans,fontSize:9,color:C.muted,letterSpacing:1.5,padding:"4px 0"}}>{d}</div>)}
+        </div>
+        <div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:2}}>
+          {Array.from({length:totalCells}).map((_,i)=>{
+            const dn=i-firstDay()+1;
+            const valid=dn>=1&&dn<=daysInMonth;
+            const ds=valid?dateStr(year,month,dn):null;
+            const isToday=ds===todayStr;
+            const dayRes=valid?getResForDay(dn):[];
+            return(
+              <div key={i} className={valid?"day-cell":""}
+                style={{minHeight:56,background:valid?C.surface:"transparent",border:`0.5px solid ${isToday?C.gold:valid?C.border:"transparent"}`,borderRadius:4,padding:"3px 4px",opacity:valid?1:.2}}>
+                {valid&&(
+                  <>
+                    <div style={{fontFamily:F.sans,fontSize:9,color:isToday?C.gold:C.muted,marginBottom:2}}>{dn}</div>
+                    {dayRes.slice(0,3).map(r=>{
+                      const color=r.source==="blocage"?"#555":r.appartements?.color||C.gold;
+                      return(
+                        <div key={r.id} className="res-block"
+                          style={{background:`${color}28`,color,border:`0.5px solid ${color}55`,fontSize:9,padding:"1px 4px",borderRadius:2,marginBottom:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
+                          {r.source==="blocage"?"🚫":""}{r.voyageur_nom?.split(" ")[0]||"Réservé"}
+                        </div>
+                      );
+                    })}
+                    {dayRes.length>3&&<div style={{fontFamily:F.sans,fontSize:8,color:C.muted}}>+{dayRes.length-3}</div>}
+                  </>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+      {/* Légende */}
+      <div style={{display:"flex",gap:12,flexWrap:"wrap",marginBottom:16}}>
+        {apparts.map(a=>(
+          <div key={a.id} style={{display:"flex",alignItems:"center",gap:5,fontFamily:F.sans,fontSize:10,color:C.muted}}>
+            <div style={{width:10,height:10,borderRadius:2,background:a.color}}/>{a.nom_long||a.nom}
+          </div>
+        ))}
+        <div style={{display:"flex",alignItems:"center",gap:5,fontFamily:F.sans,fontSize:10,color:C.muted}}>
+          <div style={{width:10,height:10,borderRadius:2,background:"#555"}}/> Bloqué
+        </div>
+      </div>
+      {/* Prochaines arrivées & départs */}
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
+        {[{label:"▶ Prochaines arrivées",color:C.successTxt,key:"checkin"},{label:"◀ Prochains départs",color:C.dangerTxt,key:"checkout"}].map(({label,color,key})=>(
+          <div key={key} style={{background:C.card,border:`0.5px solid ${C.border}`,borderRadius:6,padding:"12px 14px"}}>
+            <div style={{fontFamily:F.sans,fontSize:9,color,letterSpacing:2,textTransform:"uppercase",marginBottom:8}}>{label}</div>
+            {[...reservations]
+              .filter(r=>r.source!=="blocage"&&new Date(r[key])>=new Date()&&(filterAp==="tous"||r.appart_id===filterAp))
+              .sort((a,b)=>new Date(a[key])-new Date(b[key]))
+              .slice(0,4)
+              .map(r=>(
+                <div key={r.id} style={{display:"flex",alignItems:"center",gap:8,padding:"6px 0",borderBottom:`0.5px solid ${C.border}`}}>
+                  <div style={{width:3,height:26,borderRadius:2,background:r.appartements?.color||C.gold,flexShrink:0}}/>
+                  <div style={{flex:1}}>
+                    <div style={{fontFamily:F.sans,fontSize:11,color:C.white}}>{r.voyageur_nom}</div>
+                    <div style={{fontFamily:F.sans,fontSize:9,color:C.muted}}>{r.appartements?.nom} · {r[key]}</div>
+                  </div>
+                </div>
+              ))}
+            {reservations.filter(r=>r.source!=="blocage"&&new Date(r[key])>=new Date()&&(filterAp==="tous"||r.appart_id===filterAp)).length===0&&(
+              <div style={{fontFamily:F.sans,fontSize:11,color:C.muted}}>Aucune</div>
+            )}
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
