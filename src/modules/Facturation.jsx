@@ -7,6 +7,7 @@ const C = {
   white:"#FAF6EE",muted:"#5A5550",successTxt:"#5BBF8A",
   dangerTxt:"#E07A65",warn:"#D4A52A",airbnb:"#FF5A5F",booking:"#003B95",
 };
+
 const F={serif:"'Cormorant Garamond',serif",sans:"'Montserrat',sans-serif"};
 const MOIS=["Janvier","Février","Mars","Avril","Mai","Juin","Juillet","Août","Septembre","Octobre","Novembre","Décembre"];
 
@@ -15,6 +16,7 @@ export default function Facturation(){
   const[apparts,setApparts]=useState([]);
   const[loading,setLoading]=useState(true);
   const[periode,setPeriode]=useState("mois");
+
   const load=async()=>{
     setLoading(true);
     const[{data:res},{data:ap}]=await Promise.all([
@@ -25,6 +27,7 @@ export default function Facturation(){
     setLoading(false);
   };
   useEffect(()=>{load();},[]);
+
   const now=new Date();
   const filtrees=reservations.filter(r=>{
     if(!r.checkin)return false;
@@ -33,16 +36,19 @@ export default function Facturation(){
     if(periode==="annee")return d.getFullYear()===now.getFullYear();
     return true;
   });
+
   const caTotal=filtrees.reduce((a,r)=>a+(r.montant||0),0);
   const caAMC=Math.round(caTotal*0.2);
   const sansMontant=filtrees.filter(r=>!r.montant||r.montant===0);
-  // CA par appartement
+
   const caParAppart=apparts.map(ap=>{
     const resAp=filtrees.filter(r=>r.appart_id===ap.id);
     const ca=resAp.reduce((a,r)=>a+(r.montant||0),0);
     return{...ap,ca,nb:resAp.length,partProprio:Math.round(ca*0.8),partAMC:Math.round(ca*0.2)};
   }).filter(a=>a.nb>0);
+
   if(loading) return <div style={{textAlign:"center",padding:"60px 0",fontFamily:F.sans,fontSize:12,color:C.muted}}>Chargement...</div>;
+
   return(
     <div className="fade">
       <div style={{marginBottom:24,borderBottom:`0.5px solid ${C.borderGold}`,paddingBottom:14,display:"flex",alignItems:"flex-end",justifyContent:"space-between"}}>
@@ -58,12 +64,13 @@ export default function Facturation(){
           ))}
         </div>
       </div>
+
       {sansMontant.length>0&&(
         <div style={{background:`${C.warn}15`,border:`0.5px solid ${C.warn}44`,borderRadius:6,padding:"12px 16px",marginBottom:16}}>
           <div style={{fontFamily:F.sans,fontSize:11,color:C.warn,fontWeight:600}}>⚠️ {sansMontant.length} réservation{sansMontant.length>1?"s":""} sans montant — allez dans Réservations pour les saisir</div>
         </div>
       )}
-      {/* Stats globales */}
+
       <div style={{background:`linear-gradient(135deg,${C.goldDark}22,${C.goldDark}08)`,border:`0.5px solid ${C.borderGold}`,borderRadius:8,padding:"16px 20px",marginBottom:18}}>
         <div style={{fontFamily:F.sans,fontSize:9,color:C.gold,letterSpacing:3,textTransform:"uppercase",marginBottom:12}}>AM Conciergerie Plus</div>
         <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:12}}>
@@ -80,7 +87,7 @@ export default function Facturation(){
           ))}
         </div>
       </div>
-      {/* CA par appartement */}
+
       {caParAppart.length>0&&(
         <div style={{marginBottom:18}}>
           <div style={{fontFamily:F.sans,fontSize:9,color:C.muted,letterSpacing:3,textTransform:"uppercase",marginBottom:12}}>Détail par appartement</div>
@@ -106,7 +113,7 @@ export default function Facturation(){
           ))}
         </div>
       )}
-      {/* Liste des réservations */}
+
       <div style={{fontFamily:F.sans,fontSize:9,color:C.muted,letterSpacing:3,textTransform:"uppercase",marginBottom:12}}>Réservations</div>
       {filtrees.length===0?(
         <div style={{textAlign:"center",padding:"30px 0",fontFamily:F.sans,fontSize:12,color:C.muted}}>Aucune réservation pour cette période</div>
