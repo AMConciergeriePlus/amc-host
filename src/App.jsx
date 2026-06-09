@@ -56,6 +56,10 @@ const injectGlobal = () => {
     .pulse { animation: pulse 1s ease infinite; }
     input[type=range] { -webkit-appearance:none; height:4px; border-radius:2px; background:#2A2A2A; outline:none; cursor:pointer; }
     input[type=range]::-webkit-slider-thumb { -webkit-appearance:none; width:14px; height:14px; border-radius:50%; background:linear-gradient(135deg,#7A5E1A,#C8A951); cursor:pointer; }
+    .toggle-track { width:28px; height:16px; border-radius:8px; background:#2A2A2A; border:0.5px solid #333; cursor:pointer; position:relative; transition:background .2s; }
+    .toggle-track.on { background:#7A5E1A; border-color:#C8A951; }
+    .toggle-thumb { position:absolute; top:2px; left:2px; width:10px; height:10px; border-radius:50%; background:#888; transition:left .2s, background .2s; }
+    .toggle-track.on .toggle-thumb { left:14px; background:#C8A951; }
   `;
   document.head.appendChild(s);
 };
@@ -166,7 +170,6 @@ const Dashboard = ({ setPage }) => {
         ]);
         setApparts(ap || []);
         setRes(res || []);
-        // Alertes : réservations sans montant
         const sansMontant = (res||[]).filter(r => !r.montant || r.montant === 0);
         setAlertes(sansMontant);
       } catch (e) { console.error(e); }
@@ -197,7 +200,6 @@ const Dashboard = ({ setPage }) => {
         <div style={{ textAlign:'center', padding:'40px 0', fontFamily:F.sans, fontSize:12, color:C.muted }}>Chargement...</div>
       ) : (
         <>
-          {/* Alertes montants manquants */}
           {alertes.length > 0 && (
             <div style={{ background:`${C.warn}15`, border:`0.5px solid ${C.warn}44`, borderRadius:6, padding:'12px 16px', marginBottom:16, cursor:'pointer' }} onClick={()=>setPage('reservations')}>
               <div style={{ fontFamily:F.sans, fontSize:11, color:C.warn, fontWeight:600, marginBottom:4 }}>
@@ -209,12 +211,11 @@ const Dashboard = ({ setPage }) => {
             </div>
           )}
 
-          {/* Stats */}
           <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:12, marginBottom:22 }}>
             {[
               { l:'Appartements', v:apparts.length },
-              { l:'Arrivées aujourd\'hui', v:arrivees.length, c:C.successTxt },
-              { l:'Départs aujourd\'hui', v:departs.length, c:C.dangerTxt },
+              { l:"Arrivées aujourd'hui", v:arrivees.length, c:C.successTxt },
+              { l:"Départs aujourd'hui", v:departs.length, c:C.dangerTxt },
               { l:'Montants manquants', v:alertes.length, c:alertes.length>0?C.warn:C.successTxt },
             ].map((s, i) => (
               <div key={i} style={{ background:C.card, border:`0.5px solid ${C.border}`, borderRadius:6, padding:'13px 16px' }}>
@@ -224,7 +225,6 @@ const Dashboard = ({ setPage }) => {
             ))}
           </div>
 
-          {/* Appartements */}
           {apparts.length > 0 ? (
             <div style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:10, marginBottom:20 }}>
               {apparts.map(ap => (
@@ -246,7 +246,6 @@ const Dashboard = ({ setPage }) => {
             </div>
           )}
 
-          {/* Réservations récentes */}
           {reservations.length > 0 && (
             <div style={{ background:C.card, border:`0.5px solid ${C.border}`, borderRadius:6, padding:'14px 16px' }}>
               <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:12 }}>
@@ -289,7 +288,6 @@ export default function App() {
       if (session?.user) { const u = await getCurrentUser(); setUser(u); }
       else { setUser(null); }
     });
-    // Vérifier les montants manquants
     supabase.from('reservations').select('id', { count:'exact' }).eq('montant', 0).then(({ count }) => {
       if (count) setMontantsManquants(count);
     });
@@ -352,11 +350,11 @@ export default function App() {
             {NAV.map((section, si) => (
               <div key={si}>
                 <div style={{ fontFamily:F.sans, fontSize:8, letterSpacing:3, color:C.muted, textTransform:'uppercase', padding:'8px 18px 4px', fontWeight:600, marginTop:si>0?6:0 }}>
-                  {section.label}
+                  {section.section}
                 </div>
                 {section.items.map(item => (
                   <div key={item.id} className={`nav-item${page===item.id?' active':''}`} onClick={() => setPage(item.id)}
-                    style={{ display:'flex', alignItems:'center', gap:10, padding:'8px 18px', fontSize:12, color:page===item.id?C.gold:'#888480', background:page===item.id?'#7A5E1A22':'transparent', fontFamily:F.sans, fontWeight:page===item.id?500:400, whiteSpace:'nowrap' }}>
+                    style={{ display:'flex', alignItems:'center', gap:10, padding:'8px 18px', fontSize:12, color:page===item.id?C.gold:'#888480', background:page===item.id?`#7A5E1A22`:'transparent', fontFamily:F.sans, fontWeight:page===item.id?500:400, whiteSpace:'nowrap' }}>
                     <span style={{ fontSize:12, opacity:.8, width:14, textAlign:'center' }}>{item.icon}</span>
                     <span style={{ flex:1 }}>{item.label}</span>
                     {item.id==='reservations' && montantsManquants > 0 && (
