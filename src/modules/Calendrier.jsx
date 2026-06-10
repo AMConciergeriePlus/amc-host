@@ -3,7 +3,7 @@ import { supabase } from '../lib/supabase';
 
 const C = {
   bg:"#080808",surface:"#0F0F0F",card:"#131313",border:"#222222",
-  borderGold:"#3A2E10",gold:"#C8A951",goldDark:"#7A5E1A",
+  borderGold:"#3A2E10",gold:"#8A951",goldDark:"#7A5E1A",
   white:"#FAF6EE",muted:"#5A5550",successTxt:"#5BBF8A",
   dangerTxt:"#E07A65",warn:"#D4A52A",airbnb:"#FF5A5F",booking:"#003B95",
 };
@@ -55,6 +55,47 @@ export default function Calendrier(){
       montant:0,
     });
     setSaving(false);setShowBlocage(null);setBlocageData({debut:"",fin:"",motif:""});
+      const syncIcal=async()=>{
+            if(!apparts.length)return;
+            setSyncing(true);
+            try{
+                    const {data:apData}=await supabase.from('appartements').select('id,nom,airbnb_ical,booking_ical').order('nom');
+                    let imported=0;
+                    for(const ap of (apData||[])){
+                              const urls=[{url:ap.airbnb_ical,source:'airbnb'},{url:ap.booking_ical,source:'booking'}].filter(u=>u.url);
+                              for(const {url,source} of urls){
+                                          try{
+                                                        const proxyUrl=`https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`;
+                                                        const res=await fetch(proxyUrl);
+                                                        const text=await res.text();
+                                                        const events=parseIcal(text,ap.id,source);
+                                                        for(const ev of events){
+                                                                        const exists=(await supabase.from('reservations').select('id').eq('appart_id',ev.appart_id).eq('checkin',ev.checkin).eq('source',source)).data?.length>0;
+                                                                        if(!exists){await supabase.from('reservations').insert(ev);imported++;}
+                                                        }
+                                          }catch(e){console.error('ical error',e);}
+                              }
+                    }
+                    alert(`Sync iCal terminée. ${imported} nouvelle(s) réservation(s) importée(s).`);
+                    load();
+            }catch(e){alert('Erreur sync: '+e.message);}
+            finally{setSyncing(false);}
+      };
+      const parseIcal=(text,appartId,source)=>{
+            const events=[];
+            const blocks=text.split('BEGIN:VEVENT');
+            for(let i=1;i<blocks.length;i++){
+                    const b=blocks[i];
+                    const getVal=(key)=>{const m=b.match(new RegExp(key+'[^:]*:([^\r\n]+)'));return m?m[1].trim():'';};
+                    const dtstart=getVal('DTSTART');
+                    const dtend=getVal('DTEND');
+                    const summary=getVal('SUMMARY');
+                    if(!dtstart||!dtend||summary.toLowerCase().includes('block')||summary.toLowerCase().includes('bloqué'))continue;
+                    const fmtDate=(d)=>d.length>=8?`${d.slice(0,4)}-${d.slice(4,6)}-${d.slice(6,8)}`:d;
+                    events.push({appart_id:appartId,source,statut:'confirmé',voyageur:summary||'Voyageur '+source,checkin:fmtDate(dtstart),checkout:fmtDate(dtend),montant:0,adultes:1,nuits:Math.ceil((new Date(fmtDate(dtend))-new Date(fmtDate(dtstart)))/(1000*60*60*24))});
+            }
+            return events;
+      };
     load();
   };
   const navPrev=()=>{if(month===0){setMonth(11);setYear(y=>y-1);}else setMonth(m=>m-1);};
@@ -88,6 +129,9 @@ export default function Calendrier(){
             🚫 Bloquer des dates
           </button>
         )}
+                <button onClick={syncIcal} disabled={syncing} style={{background:"transparent",border:`0.5px solid ${C.gold}44`,color:C.gold,padding:"5px 12px",borderRadius:3,fontSize:9,fontWeight:600,cursor:syncing?"not-allowed":"pointer",fontFamily:F.sans,letterSpacing:1,textTransform:"uppercase",opacity:syncing?.6:1}}>
+        {syncing?"Synchronisation...":"🔄 Sync iCal"}
+      </div>button>
       </div>
       {/* Formulaire blocage */}
       {showBlocage&&(
