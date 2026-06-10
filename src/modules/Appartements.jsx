@@ -58,6 +58,8 @@ const FormulaireAppart = ({appart,proprios,equipes,onSave,onClose})=>{
       const data={...form};
       if(!data.proprio_id) data.proprio_id=null;
       if(!data.equipe_id) data.equipe_id=null;
+            delete data.equipes;
+            delete data.proprios;
       if(form.id){
         const{error:e}=await supabase.from('appartements').update(data).eq('id',form.id);
         if(e)throw e;
