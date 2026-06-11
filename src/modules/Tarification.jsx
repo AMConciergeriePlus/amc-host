@@ -65,6 +65,7 @@ export default function Tarification(){
     if(!tarif)return;
     setSaving(true);
     const data={...tarif,saisons:JSON.stringify(tarif.saisons),evenements:JSON.stringify(tarif.evenements)};
+    delete data.id;
     const{data:existing}=await supabase.from('tarification').select('id').eq('appart_id',tarif.appart_id).single();
     if(existing){
       await supabase.from('tarification').update(data).eq('appart_id',tarif.appart_id);
