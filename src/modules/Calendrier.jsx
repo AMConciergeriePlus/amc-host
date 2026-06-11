@@ -131,7 +131,7 @@ export default function Calendrier(){
         )}
                 <button onClick={syncIcal} disabled={syncing} style={{background:"transparent",border:`0.5px solid ${C.gold}44`,color:C.gold,padding:"5px 12px",borderRadius:3,fontSize:9,fontWeight:600,cursor:syncing?"not-allowed":"pointer",fontFamily:F.sans,letterSpacing:1,textTransform:"uppercase",opacity:syncing?.6:1}}>
         {syncing?"Synchronisation...":"🔄 Sync iCal"}
-      </div>button>
+      </button>
       </div>
       {/* Formulaire blocage */}
       {showBlocage&&(
