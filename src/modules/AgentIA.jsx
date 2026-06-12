@@ -53,8 +53,9 @@ Réponds uniquement avec la checklist.`;
           "Content-Type":"application/json",
           "x-api-key": process.env.REACT_APP_ANTHROPIC_API_KEY,
           "anthropic-version":"2023-06-01",
+          "anthropic-dangerous-direct-browser-access":"true",
         },
-        body: JSON.stringify({ model:"claude-sonnet-4-20250514", max_tokens:1500, messages:[{role:"user",content:prompt}] })
+        body: JSON.stringify({ model:"claude-3-5-sonnet-20241022", max_tokens:1500, messages:[{role:"user",content:prompt}] })
       });
       const d = await res.json();
       const txt = d.content?.find(b=>b.type==="text")?.text || "";
