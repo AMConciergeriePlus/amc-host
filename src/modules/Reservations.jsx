@@ -119,6 +119,7 @@ export default function Reservations(){
   const[showNew,setShowNew]=useState(false);
   const[filter,setFilter]=useState("tous");
   const[search,setSearch]=useState("");
+  const[syncingIcal,setSyncingIcal]=useState(false);
   const load=async()=>{
     setLoading(true);
     const[{data:res},{data:ap}]=await Promise.all([
@@ -127,6 +128,48 @@ export default function Reservations(){
     ]);
     setReservations(res||[]);setApparts(ap||[]);
     setLoading(false);
+  };
+  const syncIcal=async()=>{
+    setSyncingIcal(true);
+    try{
+      const{data:apData}=await supabase.from('appartements').select('id,nom,airbnb_ical,booking_ical').order('nom');
+      let imported=0;
+      for(const ap of (apData||[])){
+        const urls=[{url:ap.airbnb_ical,source:'airbnb'},{url:ap.booking_ical,source:'booking'}].filter(u=>u.url);
+        for(const{url,source}of urls){
+          try{
+            const proxyUrl=`https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`;
+            const res=await fetch(proxyUrl);
+            const text=await res.text();
+            const events=parseIcalRes(text,ap.id,source);
+            for(const ev of events){
+              const exists=(await supabase.from('reservations').select('id').eq('appart_id',ev.appart_id).eq('checkin',ev.checkin).eq('source',source)).data?.length>0;
+              if(!exists){await supabase.from('reservations').insert(ev);imported++;}
+            }
+          }catch(e){console.error('ical error',e);}
+        }
+      }
+      alert(`Sync iCal terminée. ${imported} nouvelle(s) réservation(s) importée(s).`);
+      load();
+    }catch(e){alert('Erreur sync: '+e.message);}
+    finally{setSyncingIcal(false);}
+  };
+  const parseIcalRes=(text,appartId,source)=>{
+    const events=[];
+    const blocks=text.split('BEGIN:VEVENT');
+    for(let i=1;i<blocks.length;i++){
+      const b=blocks[i];
+      const get=(k)=>{const m=b.match(new RegExp(k+'[^:]*:([^\r\n]+)'));return m?m[1].trim():'';};
+      const fmtDate=(s)=>{const d=s.replace(/T.*$/,'');return d.slice(0,4)+'-'+d.slice(4,6)+'-'+d.slice(6,8);};
+      const dtstart=get('DTSTART');const dtend=get('DTEND');
+      if(!dtstart)continue;
+      const summary=get('SUMMARY')||source;
+      const desc=get('DESCRIPTION')||'';
+      const priceMatch=desc.match(/Total[^0-9]*([0-9]+(?:[.,][0-9]+)?)/i)||desc.match(/([0-9]+(?:[.,][0-9]+)?)\s*(EUR|€|USD|\$)/i);
+      const montant=priceMatch?parseFloat(priceMatch[1].replace(',','.')):(0);
+      events.push({appart_id:appartId,source,voyageur_nom:summary,checkin:fmtDate(dtstart),checkout:fmtDate(dtend),montant,statut:'confirmé',statut_paiement:'en attente',notes:desc.substring(0,200)});
+    }
+    return events;
   };
   useEffect(()=>{load();},[]);
   const filtered=(reservations||[]).filter(r=>{
@@ -143,6 +186,7 @@ export default function Reservations(){
           <h1 style={{fontFamily:F.serif,fontSize:26,fontWeight:300,color:C.white,letterSpacing:1}}>Réservations</h1>
           <p style={{fontFamily:F.sans,fontSize:11,color:C.muted,marginTop:4}}>{reservations.length} réservation{reservations.length>1?"s":""}</p>
         </div>
+        <button onClick={syncIcal} disabled={syncingIcal} style={{background:'transparent',color:'#C8A951',border:'0.5px solid #3A2E10',padding:'7px 14px',borderRadius:3,fontSize:10,fontWeight:600,cursor:syncingIcal?'not-allowed':'pointer',fontFamily:"'Montserrat',sans-serif",letterSpacing:1,textTransform:'uppercase',opacity:syncingIcal?.6:1,marginRight:8}}>{syncingIcal?'⏳ Syncing...':'🔄 Sync iCal'}</button>
         <Btn onClick={()=>{setEditing(null);setShowNew(true);}}>+ Nouvelle réservation</Btn>
       </div>
       {sansMontant.length>0&&(
