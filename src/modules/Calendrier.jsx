@@ -8,7 +8,7 @@ const C = {
   dangerTxt:"#E07A65",warn:"#D4A52A",airbnb:"#FF5A5F",booking:"#003B95",
 };
 const F={serif:"'Cormorant Garamond',serif",sans:"'Montserrat',sans-serif"};
-const MOIS=["Janvier","Février","Mars","Avril","Mai","Juin","Juillet","Août","Septembre","Octobre","Novembre","Décembre"];
+const MOIS=["Janvier","FÃ©vrier","Mars","Avril","Mai","Juin","Juillet","AoÃ»t","Septembre","Octobre","Novembre","DÃ©cembre"];
 const JOURS=["L","M","M","J","V","S","D"];
 const pad2=n=>String(n).padStart(2,"0");
 const dateStr=(y,m,d)=>`${y}-${pad2(m+1)}-${pad2(d)}`;
@@ -23,11 +23,12 @@ export default function Calendrier(){
   const[showBlocage,setShowBlocage]=useState(null);
   const[blocageData,setBlocageData]=useState({debut:"",fin:"",motif:""});
   const[saving,setSaving]=useState(false);
+  const[syncing,setSyncing]=useState(false);
   const load=async()=>{
     setLoading(true);
     const[{data:ap},{data:res}]=await Promise.all([
       supabase.from('appartements').select('id,nom,nom_long,color').order('nom'),
-      supabase.from('reservations').select('*,appartements(nom,color)').neq('statut','annulé'),
+      supabase.from('reservations').select('*,appartements(nom,color)').neq('statut','annulÃ©'),
     ]);
     setApparts(ap||[]);setReservations(res||[]);
     setLoading(false);
@@ -55,48 +56,48 @@ export default function Calendrier(){
       montant:0,
     });
     setSaving(false);setShowBlocage(null);setBlocageData({debut:"",fin:"",motif:""});
-      const syncIcal=async()=>{
-            if(!apparts.length)return;
-            setSyncing(true);
-            try{
-                    const {data:apData}=await supabase.from('appartements').select('id,nom,airbnb_ical,booking_ical').order('nom');
-                    let imported=0;
-                    for(const ap of (apData||[])){
-                              const urls=[{url:ap.airbnb_ical,source:'airbnb'},{url:ap.booking_ical,source:'booking'}].filter(u=>u.url);
-                              for(const {url,source} of urls){
-                                          try{
-                                                        const proxyUrl=`https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`;
-                                                        const res=await fetch(proxyUrl);
-                                                        const text=await res.text();
-                                                        const events=parseIcal(text,ap.id,source);
-                                                        for(const ev of events){
-                                                                        const exists=(await supabase.from('reservations').select('id').eq('appart_id',ev.appart_id).eq('checkin',ev.checkin).eq('source',source)).data?.length>0;
-                                                                        if(!exists){await supabase.from('reservations').insert(ev);imported++;}
-                                                        }
-                                          }catch(e){console.error('ical error',e);}
-                              }
-                    }
-                    alert(`Sync iCal terminée. ${imported} nouvelle(s) réservation(s) importée(s).`);
-                    load();
-            }catch(e){alert('Erreur sync: '+e.message);}
-            finally{setSyncing(false);}
-      };
-      const parseIcal=(text,appartId,source)=>{
-            const events=[];
-            const blocks=text.split('BEGIN:VEVENT');
-            for(let i=1;i<blocks.length;i++){
-                    const b=blocks[i];
-                    const getVal=(key)=>{const m=b.match(new RegExp(key+'[^:]*:([^\r\n]+)'));return m?m[1].trim():'';};
-                    const dtstart=getVal('DTSTART');
-                    const dtend=getVal('DTEND');
-                    const summary=getVal('SUMMARY');
-                    if(!dtstart||!dtend||summary.toLowerCase().includes('block')||summary.toLowerCase().includes('bloqué'))continue;
-                    const fmtDate=(d)=>d.length>=8?`${d.slice(0,4)}-${d.slice(4,6)}-${d.slice(6,8)}`:d;
-                    events.push({appart_id:appartId,source,statut:'confirmé',voyageur:summary||'Voyageur '+source,checkin:fmtDate(dtstart),checkout:fmtDate(dtend),montant:0,adultes:1,nuits:Math.ceil((new Date(fmtDate(dtend))-new Date(fmtDate(dtstart)))/(1000*60*60*24))});
-            }
-            return events;
-      };
     load();
+  };
+  const parseIcal=(text,appartId,source)=>{
+    const events=[];
+    const blocks=text.split('BEGIN:VEVENT');
+    for(let i=1;i<blocks.length;i++){
+      const b=blocks[i];
+      const getVal=(key)=>{const m=b.match(new RegExp(key+'[^:]*:([^\r\n]+)'));return m?m[1].trim():'';};
+      const dtstart=getVal('DTSTART');
+      const dtend=getVal('DTEND');
+      const summary=getVal('SUMMARY');
+      if(!dtstart||!dtend||summary.toLowerCase().includes('block')||summary.toLowerCase().includes('bloqué'))continue;
+      const fmtDate=(d)=>d.length>=8?`${d.slice(0,4)}-${d.slice(4,6)}-${d.slice(6,8)}`:d;
+      events.push({appart_id:appartId,source,statut:'confirmé',voyageur_nom:summary||'Voyageur '+source,checkin:fmtDate(dtstart),checkout:fmtDate(dtend),montant:0,adultes:1,nuits:Math.ceil((new Date(fmtDate(dtend))-new Date(fmtDate(dtstart)))/(1000*60*60*24))});
+    }
+    return events;
+  };
+  const syncIcal=async()=>{
+    if(!apparts.length)return;
+    setSyncing(true);
+    try{
+      const {data:apData}=await supabase.from('appartements').select('id,nom,airbnb_ical,booking_ical').order('nom');
+      let imported=0;
+      for(const ap of (apData||[])){
+        const urls=[{url:ap.airbnb_ical,source:'airbnb'},{url:ap.booking_ical,source:'booking'}].filter(u=>u.url);
+        for(const {url,source} of urls){
+          try{
+            const proxyUrl=`https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`;
+            const res=await fetch(proxyUrl);
+            const text=await res.text();
+            const events=parseIcal(text,ap.id,source);
+            for(const ev of events){
+              const exists=(await supabase.from('reservations').select('id').eq('appart_id',ev.appart_id).eq('checkin',ev.checkin).eq('source',source)).data?.length>0;
+              if(!exists){await supabase.from('reservations').insert(ev);imported++;}
+            }
+          }catch(e){console.error('ical error',e);}
+        }
+      }
+      alert(`Sync iCal terminée. ${imported} nouvelle(s) réservation(s) importée(s).`);
+      load();
+    }catch(e){alert('Erreur sync: '+e.message);}
+    finally{setSyncing(false);}
   };
   const navPrev=()=>{if(month===0){setMonth(11);setYear(y=>y-1);}else setMonth(m=>m-1);};
   const navNext=()=>{if(month===11){setMonth(0);setYear(y=>y+1);}else setMonth(m=>m+1);};
@@ -107,12 +108,12 @@ export default function Calendrier(){
         <h1 style={{fontFamily:F.serif,fontSize:26,fontWeight:300,color:C.white,letterSpacing:1}}>Calendrier</h1>
         <p style={{fontFamily:F.sans,fontSize:11,color:C.muted,marginTop:4}}>Gestion multi-appartements</p>
       </div>
-      {/* Contrôles */}
+      {/* ContrÃ´les */}
       <div style={{display:"flex",gap:10,marginBottom:16,flexWrap:"wrap",alignItems:"center"}}>
         <div style={{display:"flex",alignItems:"center",gap:8,background:C.card,border:`0.5px solid ${C.border}`,borderRadius:4,padding:"5px 10px"}}>
-          <button onClick={navPrev} style={{background:"transparent",border:"none",color:C.gold,cursor:"pointer",fontSize:16}}>‹</button>
+          <button onClick={navPrev} style={{background:"transparent",border:"none",color:C.gold,cursor:"pointer",fontSize:16}}>â¹</button>
           <span style={{fontFamily:F.serif,fontSize:14,color:C.white,minWidth:160,textAlign:"center"}}>{MOIS[month]} {year}</span>
-          <button onClick={navNext} style={{background:"transparent",border:"none",color:C.gold,cursor:"pointer",fontSize:16}}>›</button>
+          <button onClick={navNext} style={{background:"transparent",border:"none",color:C.gold,cursor:"pointer",fontSize:16}}>âº</button>
         </div>
         <div style={{display:"flex",gap:5,flexWrap:"wrap"}}>
           <button onClick={()=>setFilterAp("tous")} style={{background:filterAp==="tous"?`${C.gold}15`:"transparent",border:`0.5px solid ${filterAp==="tous"?C.gold:C.border}`,color:filterAp==="tous"?C.gold:C.muted,padding:"4px 10px",borderRadius:3,fontSize:9,cursor:"pointer",fontFamily:F.sans,fontWeight:600,textTransform:"uppercase"}}>Tous</button>
@@ -126,17 +127,17 @@ export default function Calendrier(){
         {filterAp!=="tous"&&(
           <button onClick={()=>setShowBlocage(filterAp)}
             style={{background:"transparent",border:`0.5px solid ${C.dangerTxt}44`,color:C.dangerTxt,padding:"5px 12px",borderRadius:3,fontSize:9,cursor:"pointer",fontFamily:F.sans,fontWeight:600,letterSpacing:.5,textTransform:"uppercase"}}>
-            🚫 Bloquer des dates
+            ð« Bloquer des dates
           </button>
         )}
                 <button onClick={syncIcal} disabled={syncing} style={{background:"transparent",border:`0.5px solid ${C.gold}44`,color:C.gold,padding:"5px 12px",borderRadius:3,fontSize:9,fontWeight:600,cursor:syncing?"not-allowed":"pointer",fontFamily:F.sans,letterSpacing:1,textTransform:"uppercase",opacity:syncing?.6:1}}>
-        {syncing?"Synchronisation...":"🔄 Sync iCal"}
+        {syncing?"Synchronisation...":"ð Sync iCal"}
       </button>
       </div>
       {/* Formulaire blocage */}
       {showBlocage&&(
         <div style={{background:C.card,border:`0.5px solid ${C.dangerTxt}44`,borderRadius:6,padding:"14px 16px",marginBottom:16}}>
-          <div style={{fontFamily:F.sans,fontSize:10,color:C.dangerTxt,fontWeight:600,marginBottom:10}}>🚫 Bloquer des dates — {apparts.find(a=>a.id===showBlocage)?.nom}</div>
+          <div style={{fontFamily:F.sans,fontSize:10,color:C.dangerTxt,fontWeight:600,marginBottom:10}}>ð« Bloquer des dates â {apparts.find(a=>a.id===showBlocage)?.nom}</div>
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:10,marginBottom:10}}>
             {[{l:"Du",k:"debut",t:"date"},{l:"Au",k:"fin",t:"date"},{l:"Motif",k:"motif",t:"text"}].map(fi=>(
               <div key={fi.k}>
@@ -178,7 +179,7 @@ export default function Calendrier(){
                       return(
                         <div key={r.id} className="res-block"
                           style={{background:`${color}28`,color,border:`0.5px solid ${color}55`,fontSize:9,padding:"1px 4px",borderRadius:2,marginBottom:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
-                          {r.source==="blocage"?"🚫":""}{r.voyageur_nom?.split(" ")[0]||"Réservé"}
+                          {r.source==="blocage"?"ð«":""}{r.voyageur_nom?.split(" ")[0]||"RÃ©servÃ©"}
                         </div>
                       );
                     })}
@@ -190,7 +191,7 @@ export default function Calendrier(){
           })}
         </div>
       </div>
-      {/* Légende */}
+      {/* LÃ©gende */}
       <div style={{display:"flex",gap:12,flexWrap:"wrap",marginBottom:16}}>
         {apparts.map(a=>(
           <div key={a.id} style={{display:"flex",alignItems:"center",gap:5,fontFamily:F.sans,fontSize:10,color:C.muted}}>
@@ -198,12 +199,12 @@ export default function Calendrier(){
           </div>
         ))}
         <div style={{display:"flex",alignItems:"center",gap:5,fontFamily:F.sans,fontSize:10,color:C.muted}}>
-          <div style={{width:10,height:10,borderRadius:2,background:"#555"}}/> Bloqué
+          <div style={{width:10,height:10,borderRadius:2,background:"#555"}}/> BloquÃ©
         </div>
       </div>
-      {/* Prochaines arrivées & départs */}
+      {/* Prochaines arrivÃ©es & dÃ©parts */}
       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
-        {[{label:"▶ Prochaines arrivées",color:C.successTxt,key:"checkin"},{label:"◀ Prochains départs",color:C.dangerTxt,key:"checkout"}].map(({label,color,key})=>(
+        {[{label:"â¶ Prochaines arrivÃ©es",color:C.successTxt,key:"checkin"},{label:"â Prochains dÃ©parts",color:C.dangerTxt,key:"checkout"}].map(({label,color,key})=>(
           <div key={key} style={{background:C.card,border:`0.5px solid ${C.border}`,borderRadius:6,padding:"12px 14px"}}>
             <div style={{fontFamily:F.sans,fontSize:9,color,letterSpacing:2,textTransform:"uppercase",marginBottom:8}}>{label}</div>
             {[...reservations]
@@ -215,7 +216,7 @@ export default function Calendrier(){
                   <div style={{width:3,height:26,borderRadius:2,background:r.appartements?.color||C.gold,flexShrink:0}}/>
                   <div style={{flex:1}}>
                     <div style={{fontFamily:F.sans,fontSize:11,color:C.white}}>{r.voyageur_nom}</div>
-                    <div style={{fontFamily:F.sans,fontSize:9,color:C.muted}}>{r.appartements?.nom} · {r[key]}</div>
+                    <div style={{fontFamily:F.sans,fontSize:9,color:C.muted}}>{r.appartements?.nom} Â· {r[key]}</div>
                   </div>
                 </div>
               ))}
