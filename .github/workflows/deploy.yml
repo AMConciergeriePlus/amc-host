@@ -1,0 +1,46 @@
+name: Build and Deploy to OVH
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build React app
+        run: npm run build
+        env:
+          CI: false
+
+      - name: Create .htaccess for React Router
+        run: |
+          cat > build/.htaccess << 'HTEOF'
+          Options -MultiViews
+          RewriteEngine On
+          RewriteCond %{REQUEST_FILENAME} !-f
+          RewriteRule ^ index.html [QSA,L]
+          HTEOF
+
+      - name: Deploy to OVH via FTP
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.4
+        with:
+          server: ${{ secrets.FTP_HOST }}
+          username: ${{ secrets.FTP_USER }}
+          password: ${{ secrets.FTP_PASSWORD }}
+          local-dir: ./build/
+          server-dir: /www/
