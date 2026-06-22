@@ -278,6 +278,9 @@ export default function App() {
   injectGlobal();
   const [user, setUser]           = useState(null);
   const [resetMode, setResetMode] = useState(false);
+  const [newPwd, setNewPwd] = useState('');
+  const [confirmPwd, setConfirmPwd] = useState('');
+  const [resetError, setResetError] = useState('');
   const [loading, setLoading]     = useState(true);
   const [page, setPage]           = useState('dashboard');
   const [sidebarOpen, setSidebar] = useState(true);
@@ -307,34 +310,40 @@ export default function App() {
 
   if (resetMode) return (
     <div style={{ minHeight:'100vh', display:'flex', alignItems:'center', justifyContent:'center', background:'#080808' }}>
-      <div style={{ background:'#131313', padding:'32px', borderRadius:'12px', width:'360px' }}>
-        <h2 style={{ color:'#C8A951', marginBottom:'24px', textAlign:'center' }}>Nouveau mot de passe</h2>
+      <div style={{ background:'#131313', padding:'32px', borderRadius:'12px', width:'360px', boxShadow:'0 4px 24px rgba(0,0,0,0.5)' }}>
+        <h2 style={{ color:'#C8A951', marginBottom:'24px', textAlign:'center', fontFamily:'serif', letterSpacing:'2px' }}>NOUVEAU MOT DE PASSE</h2>
         <input
           type="password"
           placeholder="Nouveau mot de passe"
-          id="new-password-input"
-          style={{ width:'100%', padding:'10px', marginBottom:'12px', background:'#0F0F0F', border:'1px solid #222', color:'#fff', borderRadius:'6px', boxSizing:'border-box' }}
+          value={newPwd}
+          onChange={e => setNewPwd(e.target.value)}
+          style={{ width:'100%', padding:'10px', marginBottom:'12px', background:'#0F0F0F', border:'1px solid #333', color:'#fff', borderRadius:'6px', boxSizing:'border-box', fontSize:'14px' }}
         />
         <input
           type="password"
           placeholder="Confirmer le mot de passe"
-          id="confirm-password-input"
-          style={{ width:'100%', padding:'10px', marginBottom:'16px', background:'#0F0F0F', border:'1px solid #222', color:'#fff', borderRadius:'6px', boxSizing:'border-box' }}
+          value={confirmPwd}
+          onChange={e => setConfirmPwd(e.target.value)}
+          style={{ width:'100%', padding:'10px', marginBottom:'16px', background:'#0F0F0F', border:'1px solid #333', color:'#fff', borderRadius:'6px', boxSizing:'border-box', fontSize:'14px' }}
         />
-        <div id="reset-error" style={{ color:'#E07A65', fontSize:'13px', marginBottom:'10px', display:'none' }}></div>
+        {resetError && <div style={{ color:'#E07A65', fontSize:'13px', marginBottom:'12px' }}>{resetError}</div>}
         <button
           onClick={async () => {
-            const np = document.getElementById('new-password-input').value;
-            const cp = document.getElementById('confirm-password-input').value;
-            const errEl = document.getElementById('reset-error');
-            if (np !== cp) { errEl.textContent = 'Les mots de passe ne correspondent pas'; errEl.style.display='block'; return; }
-            if (np.length < 6) { errEl.textContent = 'Minimum 6 caractères'; errEl.style.display='block'; return; }
-            const { error } = await supabase.auth.updateUser({ password: np });
-            if (error) { errEl.textContent = error.message; errEl.style.display='block'; }
-            else { setResetMode(false); const u = await getCurrentUser(); setUser(u); }
+            setResetError('');
+            if (newPwd !== confirmPwd) { setResetError('Les mots de passe ne correspondent pas'); return; }
+            if (newPwd.length < 6) { setResetError('Minimum 6 caractères requis'); return; }
+            const { error } = await supabase.auth.updateUser({ password: newPwd });
+            if (error) { setResetError(error.message); }
+            else {
+              setResetMode(false);
+              setNewPwd('');
+              setConfirmPwd('');
+              const u = await getCurrentUser();
+              setUser(u);
+            }
           }}
-          style={{ width:'100%', padding:'10px', background:'#C8A951', color:'#080808', border:'none', borderRadius:'6px', fontWeight:'bold', cursor:'pointer' }}
-        >Enregistrer le nouveau mot de passe</button>
+          style={{ width:'100%', padding:'12px', background:'#C8A951', color:'#080808', border:'none', borderRadius:'6px', fontWeight:'bold', cursor:'pointer', fontSize:'14px', letterSpacing:'1px' }}
+        >ENREGISTRER</button>
       </div>
     </div>
   );
