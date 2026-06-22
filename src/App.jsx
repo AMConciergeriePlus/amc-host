@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+const [resetMode, setResetMode] = useState(false);
 import { supabase, getCurrentUser } from './lib/supabase';
 import Appartements from './modules/Appartements';
 import Calendrier    from './modules/Calendrier';
@@ -285,6 +286,10 @@ export default function App() {
   useEffect(() => {
     getCurrentUser().then(u => { setUser(u); setLoading(false); });
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (event === 'PASSWORD_RECOVERY') {
+        setResetMode(true);
+        return;
+      }
       if (session?.user) { const u = await getCurrentUser(); setUser(u); }
       else { setUser(null); }
     });
@@ -300,7 +305,40 @@ export default function App() {
     </div>
   );
 
-  if (!user) return <PageLogin onLogin={async () => { const u = await getCurrentUser(); setUser(u); }}/>;
+  if (resetMode) return (
+    <div style={{ minHeight:'100vh', display:'flex', alignItems:'center', justifyContent:'center', background:'#080808' }}>
+      <div style={{ background:'#131313', padding:'32px', borderRadius:'12px', width:'360px' }}>
+        <h2 style={{ color:'#C8A951', marginBottom:'24px', textAlign:'center' }}>Nouveau mot de passe</h2>
+        <input
+          type="password"
+          placeholder="Nouveau mot de passe"
+          id="new-password-input"
+          style={{ width:'100%', padding:'10px', marginBottom:'12px', background:'#0F0F0F', border:'1px solid #222', color:'#fff', borderRadius:'6px', boxSizing:'border-box' }}
+        />
+        <input
+          type="password"
+          placeholder="Confirmer le mot de passe"
+          id="confirm-password-input"
+          style={{ width:'100%', padding:'10px', marginBottom:'16px', background:'#0F0F0F', border:'1px solid #222', color:'#fff', borderRadius:'6px', boxSizing:'border-box' }}
+        />
+        <div id="reset-error" style={{ color:'#E07A65', fontSize:'13px', marginBottom:'10px', display:'none' }}></div>
+        <button
+          onClick={async () => {
+            const np = document.getElementById('new-password-input').value;
+            const cp = document.getElementById('confirm-password-input').value;
+            const errEl = document.getElementById('reset-error');
+            if (np !== cp) { errEl.textContent = 'Les mots de passe ne correspondent pas'; errEl.style.display='block'; return; }
+            if (np.length < 6) { errEl.textContent = 'Minimum 6 caractères'; errEl.style.display='block'; return; }
+            const { error } = await supabase.auth.updateUser({ password: np });
+            if (error) { errEl.textContent = error.message; errEl.style.display='block'; }
+            else { setResetMode(false); const u = await getCurrentUser(); setUser(u); }
+          }}
+          style={{ width:'100%', padding:'10px', background:'#C8A951', color:'#080808', border:'none', borderRadius:'6px', fontWeight:'bold', cursor:'pointer' }}
+        >Enregistrer le nouveau mot de passe</button>
+      </div>
+    </div>
+  );
+    if (!user) return <PageLogin onLogin={async () => { const u = await getCurrentUser(); setUser(u); }}/>;
 
   const renderPage = () => {
     switch (page) {
