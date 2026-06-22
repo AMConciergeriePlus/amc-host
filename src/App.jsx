@@ -287,18 +287,44 @@ export default function App() {
   const [montantsManquants, setMontantsManquants] = useState(0);
 
   useEffect(() => {
-    getCurrentUser().then(u => { setUser(u); setLoading(false); });
+    // Subscribe to auth state changes first (always)
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (event === 'PASSWORD_RECOVERY') {
         setResetMode(true);
+        setUser(null);
+        setLoading(false);
         return;
       }
-      if (session?.user) { const u = await getCurrentUser(); setUser(u); }
-      else { setUser(null); }
+      if (event === 'USER_UPDATED') {
+        if (session?.user) {
+          const u = await getCurrentUser();
+          setUser(u);
+          setResetMode(false);
+        }
+        setLoading(false);
+        return;
+      }
+      if (session?.user) {
+        const u = await getCurrentUser();
+        setUser(u);
+      } else {
+        setUser(null);
+      }
+      setLoading(false);
     });
-    supabase.from('reservations').select('id', { count:'exact' }).eq('montant', 0).then(({ count }) => {
-      if (count) setMontantsManquants(count);
-    });
+
+    // Check URL hash for recovery token (Supabase puts it there)
+    const hash = window.location.hash;
+    if (hash.includes('type=recovery')) {
+      // The onAuthStateChange will fire PASSWORD_RECOVERY event
+      // Just set resetMode immediately for faster UX
+      setResetMode(true);
+      setLoading(false);
+    } else {
+      // Normal init: get current user
+      getCurrentUser().then(u => { setUser(u); setLoading(false); });
+    }
+
     return () => subscription.unsubscribe();
   }, []);
 
