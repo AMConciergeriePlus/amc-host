@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react';
-const [resetMode, setResetMode] = useState(false);
 import { supabase, getCurrentUser } from './lib/supabase';
 import Appartements from './modules/Appartements';
 import Calendrier    from './modules/Calendrier';
@@ -278,6 +277,7 @@ const Dashboard = ({ setPage }) => {
 export default function App() {
   injectGlobal();
   const [user, setUser]           = useState(null);
+  const [resetMode, setResetMode] = useState(false);
   const [loading, setLoading]     = useState(true);
   const [page, setPage]           = useState('dashboard');
   const [sidebarOpen, setSidebar] = useState(true);
