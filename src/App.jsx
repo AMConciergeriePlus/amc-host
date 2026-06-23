@@ -149,11 +149,20 @@ const PageLogin = ({ onLogin }) => {
             style={{ width:'100%', background:`linear-gradient(135deg,${C.goldDark},${C.gold})`, color:C.bg, border:'none', padding:'11px', borderRadius:4, fontSize:11, fontWeight:700, cursor:loading?'not-allowed':'pointer', fontFamily:F.sans, letterSpacing:2, textTransform:'uppercase', opacity:loading?.7:1 }}>
             {loading ? 'Connexion...' : 'Se connecter'}
           </button>
-        </form>
-        <div style={{ textAlign:'cen
           {resetSent
-            ? <div style={{ textAlign:'center', marginTop:'12px', color:'#C8A951', fontFamily:'sans-serif', fontSize:'13px' }}>Email envoye ! Consultez votre boite mail.</div>
-            : <div style={{ textAlign:'center', marginTop:'12px' }}>
+            ? <p style={{textAlign:"center",marginTop:"12px",color:"#C8A951",fontFamily:"sans-serif",fontSize:"13px"}}>Email envoye ! Consultez votre boite mail.</p>
+            : <p style={{textAlign:"center",marginTop:"8px"}}>
+                <button type="button" onClick={async () => {
+                  if (!email) { setError("Entrez votre email dabord"); return; }
+                  const { error: e } = await supabase.auth.resetPasswordForEmail(email, { redirectTo: "https://amchost.fr" });
+                  if (e) { setError(e.message); } else { setResetSent(true); }
+                }} style={{background:"none",border:"none",color:"#C8A951",fontFamily:"sans-serif",fontSize:"12px",cursor:"pointer",textDecoration:"underline",padding:"0"}}>
+                  Mot de passe oublie ?
+                </button>
+              </p>
+          }
+        </form>
+<div style={{ textAlign:'center', marginTop:'12px' }}>
                 <button
                   type="button"
                   onClick={async () => {
