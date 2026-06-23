@@ -105,11 +105,12 @@ const NAV = [
   ]},
 ];
 
-const PageLogin = ({ onLogin }) => {
-  const [email, setEmail]       = useState('');
+
+const LoginModal = ({ onLogin, onClose }) => {
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [error, setError]       = useState('');
-  const [loading, setLoading]   = useState(false);
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
   const [resetSent, setResetSent] = useState(false);
 
   const handleSubmit = async (e) => {
@@ -124,16 +125,19 @@ const PageLogin = ({ onLogin }) => {
     } finally { setLoading(false); }
   };
 
+  const handleOverlayClick = (e) => {
+    if (e.target === e.currentTarget) onClose();
+  };
+
   return (
-    <div style={{ minHeight:'100vh', background:C.bg, display:'flex', alignItems:'center', justifyContent:'center', padding:16 }}>
-      <div style={{ width:'100%', maxWidth:400 }}>
-        <div style={{ textAlign:'center', marginBottom:32 }}>
-          <Logo size={56}/>
-          <div style={{ fontFamily:F.serif, fontSize:24, letterSpacing:4, color:C.white, textTransform:'uppercase', marginTop:12, fontWeight:500 }}>AMC HOST</div>
-          <div style={{ fontFamily:F.sans, fontSize:9, letterSpacing:4, color:C.gold, textTransform:'uppercase', marginTop:4 }}>Channel Manager</div>
+    <div onClick={handleOverlayClick} style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.8)', display:'flex', alignItems:'center', justifyContent:'center', zIndex:1000, padding:16 }}>
+      <div style={{ width:'100%', maxWidth:400, background:C.card, border:`0.5px solid ${C.borderGold}`, borderRadius:10, padding:28, position:'relative' }}>
+        <button onClick={onClose} style={{ position:'absolute', top:12, right:16, background:'transparent', border:'none', color:C.muted, cursor:'pointer', fontSize:20, lineHeight:1 }}>x</button>
+        <div style={{ textAlign:'center', marginBottom:24 }}>
+          <Logo size={40}/>
+          <div style={{ fontFamily:F.serif, fontSize:18, letterSpacing:3, color:C.white, textTransform:'uppercase', marginTop:10, fontWeight:500 }}>Espace client</div>
         </div>
-        <form onSubmit={handleSubmit} style={{ background:C.card, border:`0.5px solid ${C.borderGold}`, borderRadius:10, padding:28 }}>
-          <div style={{ fontFamily:F.serif, fontSize:18, color:C.white, marginBottom:20, textAlign:'center' }}>Connexion</div>
+        <form onSubmit={handleSubmit}>
           {[
             { label:'Email', value:email, set:setEmail, type:'email' },
             { label:'Mot de passe', value:password, set:setPassword, type:'password' },
@@ -141,43 +145,121 @@ const PageLogin = ({ onLogin }) => {
             <div key={i} style={{ marginBottom:14 }}>
               <label style={{ fontFamily:F.sans, fontSize:9, color:C.muted, letterSpacing:2, textTransform:'uppercase', display:'block', marginBottom:5 }}>{f.label}</label>
               <input type={f.type} value={f.value} onChange={e => f.set(e.target.value)} required
-                style={{ width:'100%', background:C.surface, border:`0.5px solid ${C.border}`, color:C.white, padding:'10px 12px', borderRadius:4, fontFamily:F.sans, fontSize:12, outline:'none' }}/>
+                style={{ width:'100%', background:C.surface, border:`0.5px solid ${C.border}`, color:C.white, padding:'10px 12px', borderRadius:4, fontFamily:F.sans, fontSize:12, outline:'none', boxSizing:'border-box' }}/>
             </div>
           ))}
-          {error && <div style={{ fontFamily:F.sans, fontSize:11, color:C.dangerTxt, marginBottom:12, textAlign:'center' }}>{error}</div>}
+          {error && <div style={{ color:C.dangerTxt, fontSize:11, marginBottom:12, textAlign:'center' }}>{error}</div>}
           <button type="submit" disabled={loading}
-            style={{ width:'100%', background:`linear-gradient(135deg,${C.goldDark},${C.gold})`, color:C.bg, border:'none', padding:'11px', borderRadius:4, fontSize:11, fontWeight:700, cursor:loading?'not-allowed':'pointer', fontFamily:F.sans, letterSpacing:2, textTransform:'uppercase', opacity:loading?.7:1 }}>
+            style={{ width:'100%', background:`linear-gradient(135deg,${C.goldDark},${C.gold})`, color:C.bg, border:'none', padding:'11px', borderRadius:4, fontSize:11, fontWeight:700, cursor:loading?'not-allowed':'pointer', fontFamily:F.sans, letterSpacing:2, textTransform:'uppercase', opacity:loading?0.7:1 }}>
             {loading ? 'Connexion...' : 'Se connecter'}
           </button>
           {resetSent
-            ? <p style={{textAlign:"center",marginTop:"12px",color:"#C8A951",fontFamily:"sans-serif",fontSize:"13px"}}>Email envoye ! Consultez votre boite mail.</p>
-            : <p style={{textAlign:"center",marginTop:"8px"}}>
+            ? <p style={{ textAlign:'center', marginTop:'12px', color:C.gold, fontFamily:F.sans, fontSize:'12px' }}>Email envoye ! Consultez votre boite mail.</p>
+            : <div style={{ textAlign:'center', marginTop:'10px' }}>
                 <button type="button" onClick={async () => {
-                  if (!email) { setError("Entrez votre email dabord"); return; }
-                  const { error: e } = await supabase.auth.resetPasswordForEmail(email, { redirectTo: "https://amchost.fr" });
+                  if (!email) { setError("Entrez votre email d'abord"); return; }
+                  const { error: e } = await supabase.auth.resetPasswordForEmail(email, { redirectTo: window.location.origin });
                   if (e) { setError(e.message); } else { setResetSent(true); }
-                }} style={{background:"none",border:"none",color:"#C8A951",fontFamily:"sans-serif",fontSize:"12px",cursor:"pointer",textDecoration:"underline",padding:"0"}}>
+                }} style={{ background:'none', border:'none', color:C.gold, fontFamily:F.sans, fontSize:'12px', cursor:'pointer', textDecoration:'underline', padding:'0' }}>
                   Mot de passe oublie ?
                 </button>
-              </p>
+              </div>
           }
         </form>
-<div style={{ textAlign:'center', marginTop:'12px' }}>
-                <button
-                  type="button"
-                  onClick={async () => {
-                    if (!email) { setError('Entrez votre email d\'abord'); return; }
-                    const { error: e } = await supabase.auth.resetPasswordForEmail(email, { redirectTo: 'https://amchost.fr' });
-                    if (e) { setError(e.message); } else { setResetSent(true); }
-                  }}
-                  style={{ background:'none', border:'none', color:'#C8A951', fontFamily:'sans-serif', fontSize:'12px', cursor:'pointer', textDecoration:'underline', padding:'0' }}
-                >Mot de passe oublie ?</button>
-              </div>
-          <div style={{ textAlign:"center", marginTop:16, fontFamily:F.sans, fontSize:10, color:C.muted }}>AM Conciergerie Plus · Usage privé</div>
       </div>
     </div>
   );
 };
+
+const LandingPage = ({ onOpenLogin }) => {
+  const features = [
+    { icon:'P', title:'Calendrier unifie', desc:'Synchronisation Airbnb et Booking automatique, zero conflit de reservation.' },
+    { icon:'H', title:'Gestion des appartements', desc:'Configuration personnalisee par bien, suivi complet de chaque propriete.' },
+    { icon:'M', title:'Equipes de menage', desc:'Assignation et suivi des interventions en temps reel.' },
+    { icon:'F', title:'Facturation', desc:'Recapitulatifs automatiques par appartement chaque mois.' },
+    { icon:'R', title:'Checklist IA', desc:'Generee selon le type de bien pour ne rien oublier.' },
+    { icon:'D', title:'Tableau de bord', desc:"Taux d'occupation, revenus et prochains departs en un coup d'oeil." },
+  ];
+  const steps = [
+    { n:'01', title:'Ajoutez vos appartements', desc:'Connectez vos flux iCal Airbnb et Booking en quelques secondes.' },
+    { n:'02', title:'Synchronisation automatique', desc:'Les reservations se mettent a jour en temps reel, sans intervention de votre part.' },
+    { n:'03', title:'Gerez et deleguez', desc:'Consultez vos revenus, deleguez les menages et suivez tout depuis un seul ecran.' },
+  ];
+  const btnStyle = (large) => ({ background:`linear-gradient(135deg,${C.goldDark},${C.gold})`, color:C.bg, border:'none', padding: large ? '14px 36px' : '10px 24px', borderRadius:4, fontSize: large ? 13 : 11, fontWeight:700, cursor:'pointer', fontFamily:F.sans, letterSpacing:2, textTransform:'uppercase' });
+  return (
+    <div style={{ fontFamily:F.sans, background:C.bg, color:C.white, minHeight:'100vh' }}>
+      <nav style={{ background:C.surface, borderBottom:`0.5px solid ${C.border}`, padding:'0 24px', height:56, display:'flex', alignItems:'center', justifyContent:'space-between', position:'sticky', top:0, zIndex:100 }}>
+        <div style={{ display:'flex', alignItems:'center', gap:10 }}>
+          <Logo size={28}/>
+          <div>
+            <div style={{ fontFamily:F.serif, fontSize:13, fontWeight:500, letterSpacing:3, color:C.white, textTransform:'uppercase', lineHeight:1 }}>AMC HOST</div>
+            <div style={{ fontFamily:F.sans, fontSize:8, letterSpacing:3, color:C.gold, textTransform:'uppercase', marginTop:2 }}>Channel Manager</div>
+          </div>
+        </div>
+        <button onClick={onOpenLogin} style={btnStyle(false)}>Se connecter</button>
+      </nav>
+      <section style={{ textAlign:'center', padding:'80px 24px 64px', maxWidth:720, margin:'0 auto' }}>
+        <h1 style={{ fontFamily:F.serif, fontSize:'clamp(28px,5vw,46px)', fontWeight:400, lineHeight:1.25, color:C.white, marginBottom:20 }}>
+          Gerez vos locations<br/><span style={{ color:C.gold }}>sans y penser.</span>
+        </h1>
+        <p style={{ fontSize:14, color:C.mutedMid, lineHeight:1.7, marginBottom:36 }}>
+          AMC Host centralise la gestion de vos appartements Airbnb et Booking : calendriers, reservations, menages, facturation - tout au meme endroit.
+        </p>
+        <button onClick={onOpenLogin} style={btnStyle(true)}>Acceder a mon espace</button>
+      </section>
+      <div style={{ borderTop:`0.5px solid ${C.border}`, borderBottom:`0.5px solid ${C.border}`, display:'flex', flexWrap:'wrap', justifyContent:'center' }}>
+        {[
+          { v:'Sync iCal', l:'automatique' },
+          { v:'Calendrier unifie', l:'0 conflit' },
+          { v:'Suivi', l:'24/7' },
+        ].map((s, i, arr) => (
+          <div key={i} style={{ flex:'1 1 150px', maxWidth:260, textAlign:'center', padding:'28px 16px', borderRight: i < arr.length-1 ? `0.5px solid ${C.border}` : 'none' }}>
+            <div style={{ fontFamily:F.serif, fontSize:20, color:C.gold }}>{s.v}</div>
+            <div style={{ fontFamily:F.sans, fontSize:10, color:C.muted, letterSpacing:2, textTransform:'uppercase', marginTop:4 }}>{s.l}</div>
+          </div>
+        ))}
+      </div>
+      <section style={{ padding:'64px 24px', maxWidth:960, margin:'0 auto' }}>
+        <h2 style={{ fontFamily:F.serif, fontSize:28, fontWeight:400, textAlign:'center', color:C.white, marginBottom:8 }}>Fonctionnalites</h2>
+        <p style={{ fontFamily:F.sans, fontSize:12, color:C.muted, textAlign:'center', marginBottom:40, letterSpacing:1 }}>Tout ce dont vous avez besoin pour gerer vos biens sereinement.</p>
+        <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(260px,1fr))', gap:16 }}>
+          {features.map((f, i) => (
+            <div key={i} style={{ background:C.card, border:`0.5px solid ${C.border}`, borderRadius:8, padding:22 }}>
+              <div style={{ fontFamily:F.serif, fontSize:16, color:C.white, marginBottom:8 }}>{f.title}</div>
+              <div style={{ fontFamily:F.sans, fontSize:11, color:C.muted, lineHeight:1.6 }}>{f.desc}</div>
+            </div>
+          ))}
+        </div>
+      </section>
+      <section style={{ background:C.surface, borderTop:`0.5px solid ${C.border}`, borderBottom:`0.5px solid ${C.border}`, padding:'64px 24px' }}>
+        <div style={{ maxWidth:800, margin:'0 auto' }}>
+          <h2 style={{ fontFamily:F.serif, fontSize:28, fontWeight:400, textAlign:'center', color:C.white, marginBottom:8 }}>Comment ca marche</h2>
+          <p style={{ fontFamily:F.sans, fontSize:12, color:C.muted, textAlign:'center', marginBottom:48, letterSpacing:1 }}>Operationnel en quelques minutes.</p>
+          <div style={{ display:'flex', flexDirection:'column', gap:28 }}>
+            {steps.map((s, i) => (
+              <div key={i} style={{ display:'flex', gap:20, alignItems:'flex-start' }}>
+                <div style={{ fontFamily:F.serif, fontSize:32, color:C.borderGold, fontWeight:400, lineHeight:1, flexShrink:0, minWidth:48 }}>{s.n}</div>
+                <div>
+                  <div style={{ fontFamily:F.serif, fontSize:18, color:C.gold, marginBottom:6 }}>{s.title}</div>
+                  <div style={{ fontFamily:F.sans, fontSize:12, color:C.muted, lineHeight:1.6 }}>{s.desc}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+      <section style={{ textAlign:'center', padding:'64px 24px' }}>
+        <h2 style={{ fontFamily:F.serif, fontSize:28, fontWeight:400, color:C.white, marginBottom:12 }}>Pret a simplifier votre gestion ?</h2>
+        <p style={{ fontFamily:F.sans, fontSize:12, color:C.muted, marginBottom:32 }}>Connectez-vous a votre espace client pour commencer.</p>
+        <button onClick={onOpenLogin} style={btnStyle(true)}>Acceder a mon espace</button>
+      </section>
+      <footer style={{ borderTop:`0.5px solid ${C.border}`, padding:'20px 24px', textAlign:'center', fontFamily:F.sans, fontSize:10, color:C.muted, letterSpacing:1 }}>
+        AM Conciergerie Plus - Usage prive
+      </footer>
+    </div>
+  );
+};
+
 
 const Dashboard = ({ setPage }) => {
   const [apparts, setApparts]   = useState([]);
@@ -397,7 +479,19 @@ export default function App() {
       </div>
     </div>
   );
-    if (!user) return <PageLogin onLogin={async () => { const u = await getCurrentUser(); setUser(u); }}/>;
+
+  const [showLoginModal, setShowLoginModal] = useState(false);
+
+  if (!user) return (
+    <>
+      <LandingPage onOpenLogin={() => setShowLoginModal(true)}/>
+      {showLoginModal && <LoginModal
+        onLogin={(u) => { setUser(u); setShowLoginModal(false); }}
+        onClose={() => setShowLoginModal(false)}
+      />}
+    </>
+  );
+
 
   const renderPage = () => {
     switch (page) {
