@@ -173,7 +173,7 @@ const PageLogin = ({ onLogin }) => {
                   style={{ background:'none', border:'none', color:'#C8A951', fontFamily:'sans-serif', fontSize:'12px', cursor:'pointer', textDecoration:'underline', padding:'0' }}
                 >Mot de passe oublie ?</button>
               </div>
-          }ter', marginTop:16, fontFamily:F.sans, fontSize:10, color:C.muted }}>AM Conciergerie Plus · Usage privé</div>
+          <div style={{ textAlign:"center", marginTop:16, fontFamily:F.sans, fontSize:10, color:C.muted }}>AM Conciergerie Plus · Usage privé</div>
       </div>
     </div>
   );
