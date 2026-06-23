@@ -390,6 +390,7 @@ export default function App() {
   const [loading, setLoading]     = useState(true);
   const [page, setPage]           = useState('dashboard');
   const [sidebarOpen, setSidebar] = useState(true);
+  const [showLoginModal, setShowLoginModal] = useState(false);
   const [montantsManquants, setMontantsManquants] = useState(0);
 
   useEffect(() => {
@@ -479,8 +480,6 @@ export default function App() {
       </div>
     </div>
   );
-
-  const [showLoginModal, setShowLoginModal] = useState(false);
 
   if (!user) return (
     <>
