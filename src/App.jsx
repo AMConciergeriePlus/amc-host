@@ -110,6 +110,7 @@ const PageLogin = ({ onLogin }) => {
   const [password, setPassword] = useState('');
   const [error, setError]       = useState('');
   const [loading, setLoading]   = useState(false);
+  const [resetSent, setResetSent] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -149,7 +150,21 @@ const PageLogin = ({ onLogin }) => {
             {loading ? 'Connexion...' : 'Se connecter'}
           </button>
         </form>
-        <div style={{ textAlign:'center', marginTop:16, fontFamily:F.sans, fontSize:10, color:C.muted }}>AM Conciergerie Plus · Usage privé</div>
+        <div style={{ textAlign:'cen
+          {resetSent
+            ? <div style={{ textAlign:'center', marginTop:'12px', color:'#C8A951', fontFamily:'sans-serif', fontSize:'13px' }}>Email envoyé ! Vérifiez votre boîte mail.</div>
+            : <div style={{ textAlign:'center', marginTop:'12px' }}>
+                <button
+                  type="button"
+                  onClick={async () => {
+                    if (!email) { setError('Entrez votre email d\'abord'); return; }
+                    const { error: e } = await supabase.auth.resetPasswordForEmail(email, { redirectTo: 'https://amchost.fr' });
+                    if (e) { setError(e.message); } else { setResetSent(true); }
+                  }}
+                  style={{ background:'none', border:'none', color:'#C8A951', fontFamily:'sans-serif', fontSize:'12px', cursor:'pointer', textDecoration:'underline', padding:'0' }}
+                >Mot de passe oublié ?</button>
+              </div>
+          }ter', marginTop:16, fontFamily:F.sans, fontSize:10, color:C.muted }}>AM Conciergerie Plus · Usage privé</div>
       </div>
     </div>
   );
