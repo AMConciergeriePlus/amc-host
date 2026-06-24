@@ -121,56 +121,63 @@ const LoginModal = ({ onLogin, onClose }) => {
       if (error) throw error;
       if (data.user) onLogin(data.user);
     } catch (err) {
-      setError('Email ou mot de passe incorrect.');
+      const msg = err.message || '';
+      if (msg.includes('Invalid login credentials') || msg.includes('invalid_credentials')) {
+        setError('Email ou mot de passe incorrect.');
+      } else if (msg.includes('Email not confirmed') || msg.includes('email_not_confirmed')) {
+        setError('Veuillez confirmer votre email avant de vous connecter.');
+      } else if (msg.includes('Too many requests')) {
+        setError('Trop de tentatives. Veuillez attendre quelques minutes.');
+      } else {
+        setError(msg || 'Une erreur est survenue.');
+      }
     } finally { setLoading(false); }
   };
 
-  const handleOverlayClick = (e) => {
-    if (e.target === e.currentTarget) onClose();
-  };
+  const handleOverlayClick = (e) => { if (e.target === e.currentTarget) onClose(); };
 
   return (
-    <div onClick={handleOverlayClick} style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.8)', display:'flex', alignItems:'center', justifyContent:'center', zIndex:1000, padding:16 }}>
-      <div style={{ width:'100%', maxWidth:400, background:C.card, border:`0.5px solid ${C.borderGold}`, borderRadius:10, padding:28, position:'relative' }}>
-        <button onClick={onClose} style={{ position:'absolute', top:12, right:16, background:'transparent', border:'none', color:C.muted, cursor:'pointer', fontSize:20, lineHeight:1 }}>x</button>
-        <div style={{ textAlign:'center', marginBottom:24 }}>
-          <Logo size={40}/>
-          <div style={{ fontFamily:F.serif, fontSize:18, letterSpacing:3, color:C.white, textTransform:'uppercase', marginTop:10, fontWeight:500 }}>Espace client</div>
-        </div>
-        <form onSubmit={handleSubmit}>
-          {[
-            { label:'Email', value:email, set:setEmail, type:'email' },
-            { label:'Mot de passe', value:password, set:setPassword, type:'password' },
-          ].map((f, i) => (
-            <div key={i} style={{ marginBottom:14 }}>
-              <label style={{ fontFamily:F.sans, fontSize:9, color:C.muted, letterSpacing:2, textTransform:'uppercase', display:'block', marginBottom:5 }}>{f.label}</label>
-              <input type={f.type} value={f.value} onChange={e => f.set(e.target.value)} required
-                style={{ width:'100%', background:C.surface, border:`0.5px solid ${C.border}`, color:C.white, padding:'10px 12px', borderRadius:4, fontFamily:F.sans, fontSize:12, outline:'none', boxSizing:'border-box' }}/>
-            </div>
-          ))}
-          {error && <div style={{ color:C.dangerTxt, fontSize:11, marginBottom:12, textAlign:'center' }}>{error}</div>}
-          <button type="submit" disabled={loading}
-            style={{ width:'100%', background:`linear-gradient(135deg,${C.goldDark},${C.gold})`, color:C.bg, border:'none', padding:'11px', borderRadius:4, fontSize:11, fontWeight:700, cursor:loading?'not-allowed':'pointer', fontFamily:F.sans, letterSpacing:2, textTransform:'uppercase', opacity:loading?0.7:1 }}>
-            {loading ? 'Connexion...' : 'Se connecter'}
-          </button>
-          {resetSent
-            ? <p style={{ textAlign:'center', marginTop:'12px', color:C.gold, fontFamily:F.sans, fontSize:'12px' }}>Email envoye ! Consultez votre boite mail.</p>
-            : <div style={{ textAlign:'center', marginTop:'10px' }}>
-                <button type="button" onClick={async () => {
-                  if (!email) { setError("Entrez votre email d'abord"); return; }
-                  const { error: e } = await supabase.auth.resetPasswordForEmail(email, { redirectTo: window.location.origin });
-                  if (e) { setError(e.message); } else { setResetSent(true); }
-                }} style={{ background:'none', border:'none', color:C.gold, fontFamily:F.sans, fontSize:'12px', cursor:'pointer', textDecoration:'underline', padding:'0' }}>
-                  Mot de passe oublie ?
-                </button>
-              </div>
-          }
-        </form>
+    <div onClick={handleOverlayClick} style={{ position:'fixed',inset:0,background:'rgba(0,0,0,0.8)',display:'flex',alignItems:'center',justifyContent:'center',zIndex:1000 }}>
+      <div style={{ background:'#131313',padding:'40px',borderRadius:'12px',width:'360px',boxShadow:'0 4px 24px rgba(0,0,0,0.5)',border:'1px solid #3A2E10',position:'relative' }}>
+        <button onClick={onClose} style={{ position:'absolute',top:'16px',right:'16px',background:'none',border:'none',color:'#7A7470',fontSize:'20px',cursor:'pointer',lineHeight:1 }}>×</button>
+        <h2 style={{ color:'#C8A951',marginBottom:'24px',textAlign:'center',fontFamily:"'Cormorant Garamond',serif",letterSpacing:'2px' }}>ESPACE CLIENT</h2>
+        {!resetSent ? (
+          <form onSubmit={handleSubmit}>
+            <label style={{ display:'block',fontSize:10,color:'#7A7470',marginBottom:4,letterSpacing:2 }}>EMAIL</label>
+            <input type="email" value={email} onChange={e => { setEmail(e.target.value); setError(''); }} placeholder="votre@email.com" required
+              style={{ width:'100%',padding:'10px',marginBottom:'16px',background:'#0F0F0F',border:'1px solid #333',color:'#fff',borderRadius:'6px',boxSizing:'border-box',fontSize:'14px' }} />
+            <label style={{ display:'block',fontSize:10,color:'#7A7470',marginBottom:4,letterSpacing:2 }}>MOT DE PASSE</label>
+            <input type="password" value={password} onChange={e => { setPassword(e.target.value); setError(''); }} placeholder="••••••••" required
+              style={{ width:'100%',padding:'10px',marginBottom:'4px',background:'#0F0F0F',border:'1px solid #333',color:'#fff',borderRadius:'6px',boxSizing:'border-box',fontSize:'14px' }} />
+            {error && <div style={{ color:'#E07A65',fontSize:'13px',marginBottom:'12px',marginTop:'4px' }}>{error}</div>}
+            {!error && <div style={{ height:'28px' }} />}
+            <button type="submit" disabled={loading}
+              style={{ width:'100%',padding:'12px',background:'#C8A951',color:'#080808',border:'none',borderRadius:'6px',fontWeight:'bold',cursor:'pointer',fontSize:'14px',letterSpacing:'1px' }}>
+              {loading ? 'Connexion...' : 'SE CONNECTER'}
+            </button>
+            <button type="button" onClick={async () => {
+                setError(''); setResetSent(false);
+                if (!email) { setError("Entrez votre email d'abord"); return; }
+                const { error: e } = await supabase.auth.resetPasswordForEmail(email, { redirectTo: window.location.origin });
+                if (e) { setError(e.message); } else { setResetSent(true); }
+              }}
+              style={{ background:'none',border:'none',color:'#C8A951',fontFamily:"'Montserrat',sans-serif",fontSize:'12px',cursor:'pointer',textDecoration:'underline',marginTop:10,display:'block',width:'100%',textAlign:'center' }}>
+              Mot de passe oublié ?
+            </button>
+          </form>
+        ) : (
+          <div style={{ textAlign:'center' }}>
+            <div style={{ color:'#5BBF8A',marginBottom:'16px',fontSize:'14px' }}>Email envoyé ! Consultez votre boite mail.</div>
+            <div style={{ color:'#7A7470',fontSize:'12px',marginBottom:'20px' }}>Cliquez sur le lien dans l’email pour réinitialiser votre mot de passe.</div>
+            <button onClick={() => setResetSent(false)} style={{ background:'none',border:'none',color:'#C8A951',fontFamily:"'Montserrat',sans-serif",fontSize:'12px',cursor:'pointer',textDecoration:'underline' }}>
+              Retour à la connexion
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );
 };
-
 const LandingPage = ({ onOpenLogin }) => {
   const features = [
     { icon:'P', title:'Calendrier unifie', desc:'Synchronisation Airbnb et Booking automatique, zero conflit de reservation.' },
@@ -387,6 +394,7 @@ export default function App() {
   const [newPwd, setNewPwd] = useState('');
   const [confirmPwd, setConfirmPwd] = useState('');
   const [resetError, setResetError] = useState('');
+  const [resetSuccess, setResetSuccess] = useState(false);
   const [loading, setLoading]     = useState(true);
   const [page, setPage]           = useState('dashboard');
   const [sidebarOpen, setSidebar] = useState(true);
@@ -442,41 +450,46 @@ export default function App() {
   );
 
   if (resetMode) return (
-    <div style={{ minHeight:'100vh', display:'flex', alignItems:'center', justifyContent:'center', background:'#080808' }}>
-      <div style={{ background:'#131313', padding:'32px', borderRadius:'12px', width:'360px', boxShadow:'0 4px 24px rgba(0,0,0,0.5)' }}>
-        <h2 style={{ color:'#C8A951', marginBottom:'24px', textAlign:'center', fontFamily:'serif', letterSpacing:'2px' }}>NOUVEAU MOT DE PASSE</h2>
-        <input
-          type="password"
-          placeholder="Nouveau mot de passe"
-          value={newPwd}
-          onChange={e => setNewPwd(e.target.value)}
-          style={{ width:'100%', padding:'10px', marginBottom:'12px', background:'#0F0F0F', border:'1px solid #333', color:'#fff', borderRadius:'6px', boxSizing:'border-box', fontSize:'14px' }}
-        />
-        <input
-          type="password"
-          placeholder="Confirmer le mot de passe"
-          value={confirmPwd}
-          onChange={e => setConfirmPwd(e.target.value)}
-          style={{ width:'100%', padding:'10px', marginBottom:'16px', background:'#0F0F0F', border:'1px solid #333', color:'#fff', borderRadius:'6px', boxSizing:'border-box', fontSize:'14px' }}
-        />
-        {resetError && <div style={{ color:'#E07A65', fontSize:'13px', marginBottom:'12px' }}>{resetError}</div>}
-        <button
-          onClick={async () => {
-            setResetError('');
-            if (newPwd !== confirmPwd) { setResetError('Les mots de passe ne correspondent pas'); return; }
-            if (newPwd.length < 6) { setResetError('Minimum 6 caractères requis'); return; }
-            const { error } = await supabase.auth.updateUser({ password: newPwd });
-            if (error) { setResetError(error.message); }
-            else {
-              setResetMode(false);
-              setNewPwd('');
-              setConfirmPwd('');
-              const u = await getCurrentUser();
-              setUser(u);
-            }
-          }}
-          style={{ width:'100%', padding:'12px', background:'#C8A951', color:'#080808', border:'none', borderRadius:'6px', fontWeight:'bold', cursor:'pointer', fontSize:'14px', letterSpacing:'1px' }}
-        >ENREGISTRER</button>
+    <div style={{ minHeight:'100vh',display:'flex',alignItems:'center',justifyContent:'center',background:'#080808' }}>
+      <div style={{ background:'#131313',padding:'32px',borderRadius:'12px',width:'360px',boxShadow:'0 4px 24px rgba(0,0,0,0.5)',border:'1px solid #3A2E10' }}>
+        {!resetSuccess ? (
+          <>
+            <h2 style={{ color:'#C8A951',marginBottom:'24px',textAlign:'center',fontFamily:"'Cormorant Garamond',serif",letterSpacing:'2px' }}>NOUVEAU MOT DE PASSE</h2>
+            <input type="password" placeholder="Nouveau mot de passe" value={newPwd}
+              onChange={e => { setNewPwd(e.target.value); setResetError(''); }}
+              style={{ width:'100%',padding:'10px',marginBottom:'12px',background:'#0F0F0F',border:'1px solid #333',color:'#fff',borderRadius:'6px',boxSizing:'border-box',fontSize:'14px' }} />
+            <input type="password" placeholder="Confirmer le mot de passe" value={confirmPwd}
+              onChange={e => { setConfirmPwd(e.target.value); setResetError(''); }}
+              style={{ width:'100%',padding:'10px',marginBottom:'16px',background:'#0F0F0F',border:'1px solid #333',color:'#fff',borderRadius:'6px',boxSizing:'border-box',fontSize:'14px' }} />
+            {resetError && <div style={{ color:'#E07A65',fontSize:'13px',marginBottom:'12px' }}>{resetError}</div>}
+            <button
+              onClick={async () => {
+                setResetError('');
+                if (!newPwd || !confirmPwd) { setResetError('Remplissez les deux champs'); return; }
+                if (newPwd !== confirmPwd) { setResetError('Les mots de passe ne correspondent pas'); return; }
+                if (newPwd.length < 6) { setResetError('Minimum 6 caractères requis'); return; }
+                const { error } = await supabase.auth.updateUser({ password: newPwd });
+                if (error) { setResetError(error.message); }
+                else { setNewPwd(''); setConfirmPwd(''); setResetSuccess(true); await supabase.auth.signOut(); }
+              }}
+              style={{ width:'100%',padding:'12px',background:'#C8A951',color:'#080808',border:'none',borderRadius:'6px',fontWeight:'bold',cursor:'pointer',fontSize:'14px',letterSpacing:'1px' }}>
+              ENREGISTRER
+            </button>
+          </>
+        ) : (
+          <>
+            <div style={{ textAlign:'center',marginBottom:'24px' }}>
+              <div style={{ color:'#5BBF8A',fontSize:'32px',marginBottom:'12px' }}>✓</div>
+              <h2 style={{ color:'#C8A951',marginBottom:'12px',fontFamily:"'Cormorant Garamond',serif",letterSpacing:'2px' }}>MOT DE PASSE MODIFIÉ</h2>
+              <p style={{ color:'#7A7470',fontSize:'13px',marginBottom:'20px',lineHeight:'1.6' }}>Votre mot de passe a été mis à jour. Veuillez vous reconnecter.</p>
+            </div>
+            <button
+              onClick={() => { setResetMode(false); setResetSuccess(false); setUser(null); setShowLoginModal(true); }}
+              style={{ width:'100%',padding:'12px',background:'#C8A951',color:'#080808',border:'none',borderRadius:'6px',fontWeight:'bold',cursor:'pointer',fontSize:'14px',letterSpacing:'1px' }}>
+              SE CONNECTER
+            </button>
+          </>
+        )}
       </div>
     </div>
   );
