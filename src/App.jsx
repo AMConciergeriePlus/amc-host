@@ -485,7 +485,7 @@ export default function App() {
               <p style={{ color:'#7A7470',fontSize:'13px',marginBottom:'20px',lineHeight:'1.6' }}>Votre mot de passe a été mis à jour. Veuillez vous reconnecter.</p>
             </div>
             <button
-              onClick={async () => { await supabase.auth.signOut(); setResetMode(false); setResetSuccess(false); setUser(null); setShowLoginModal(true); }}
+              onClick={() => { setResetMode(false); setResetSuccess(false); setUser(null); setShowLoginModal(true); }}
               style={{ width:'100%',padding:'12px',background:'#C8A951',color:'#080808',border:'none',borderRadius:'6px',fontWeight:'bold',cursor:'pointer',fontSize:'14px',letterSpacing:'1px' }}>
               SE CONNECTER
             </button>
