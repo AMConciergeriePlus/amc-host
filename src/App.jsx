@@ -260,8 +260,12 @@ const LandingPage = ({ onOpenLogin }) => {
         <p style={{ fontFamily:F.sans, fontSize:12, color:C.muted, marginBottom:32 }}>Connectez-vous a votre espace client pour commencer.</p>
         <button onClick={onOpenLogin} style={btnStyle(true)}>Acceder a mon espace</button>
       </section>
-      <footer style={{ borderTop:`0.5px solid ${C.border}`, padding:'20px 24px', textAlign:'center', fontFamily:F.sans, fontSize:10, color:C.muted, letterSpacing:1 }}>
-        AM Conciergerie Plus - Usage prive
+      <footer style={{ borderTop:`0.5px solid ${C.border}`, padding:'28px 24px', textAlign:'center', fontFamily:F.sans, fontSize:11, color:C.muted, letterSpacing:1 }}>
+        <div style={{marginBottom:6}}>AM Conciergerie Plus - Usage prive</div>
+        <div style={{display:'flex', justifyContent:'center', alignItems:'center', gap:24, flexWrap:'wrap'}}>
+          <a href="tel:0758522770" style={{color:C.gold, textDecoration:'none', letterSpacing:1, fontSize:12}}>📞 07 58 52 27 70</a>
+          <a href="mailto:contact@amconciergerieplus.fr" style={{color:C.gold, textDecoration:'none', letterSpacing:1, fontSize:12}}>✉ contact@amconciergerieplus.fr</a>
+        </div>
       </footer>
     </div>
   );
