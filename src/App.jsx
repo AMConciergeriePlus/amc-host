@@ -406,6 +406,7 @@ export default function App() {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (event === 'PASSWORD_RECOVERY') {
         setResetMode(true);
+        setResetSuccess(false);
         setUser(null);
         setLoading(false);
         return;
@@ -470,7 +471,7 @@ export default function App() {
                 if (newPwd.length < 6) { setResetError('Minimum 6 caractères requis'); return; }
                 const { error } = await supabase.auth.updateUser({ password: newPwd });
                 if (error) { setResetError(error.message); }
-                else { setNewPwd(''); setConfirmPwd(''); setResetSuccess(true); await supabase.auth.signOut(); }
+                else { setNewPwd(''); setConfirmPwd(''); setResetSuccess(true); }
               }}
               style={{ width:'100%',padding:'12px',background:'#C8A951',color:'#080808',border:'none',borderRadius:'6px',fontWeight:'bold',cursor:'pointer',fontSize:'14px',letterSpacing:'1px' }}>
               ENREGISTRER
@@ -484,7 +485,7 @@ export default function App() {
               <p style={{ color:'#7A7470',fontSize:'13px',marginBottom:'20px',lineHeight:'1.6' }}>Votre mot de passe a été mis à jour. Veuillez vous reconnecter.</p>
             </div>
             <button
-              onClick={() => { setResetMode(false); setResetSuccess(false); setUser(null); setShowLoginModal(true); }}
+              onClick={async () => { await supabase.auth.signOut(); setResetMode(false); setResetSuccess(false); setUser(null); setShowLoginModal(true); }}
               style={{ width:'100%',padding:'12px',background:'#C8A951',color:'#080808',border:'none',borderRadius:'6px',fontWeight:'bold',cursor:'pointer',fontSize:'14px',letterSpacing:'1px' }}>
               SE CONNECTER
             </button>
