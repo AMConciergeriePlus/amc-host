@@ -1,299 +1,74 @@
-import { useState, useEffect } from 'react';
-import { supabase, getCurrentUser } from './lib/supabase';
-import Appartements from './modules/Appartements';
-import Calendrier    from './modules/Calendrier';
-import Reservations  from './modules/Reservations';
-import Menage        from './modules/Menage';
-import Facturation   from './modules/Facturation';
-import Tarification  from './modules/Tarification';
-import AgentIA       from './modules/AgentIA';
+useEffect(() => {
+  let initialCheckDone = false;
 
-const C = {
-  bg:"#080808",surface:"#0F0F0F",card:"#131313",border:"#222222",
-  borderGold:"#3A2E10",gold:"#C8A951",goldLight:"#E2C97E",goldDark:"#7A5E1A",
-  white:"#FAF6EE",muted:"#5A5550",mutedMid:"#7A7470",
-  successTxt:"#5BBF8A",warn:"#D4A52A",dangerTxt:"#E07A65",
-};
-
-const F = {
-  serif:"'Cormorant Garamond','Palatino Linotype',serif",
-  sans:"'Montserrat','Trebuchet MS',sans-serif",
-};
-
-const injectGlobal = () => {
-  if (document.getElementById('amc-global')) return;
-  const l = document.createElement('link');
-  l.id = 'amc-global'; l.rel = 'stylesheet';
-  l.href = 'https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300&family=Montserrat:wght@300;400;500;600&display=swap';
-  document.head.appendChild(l);
-  const s = document.createElement('style');
-  s.textContent = `
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { background: #080808; color: #FAF6EE; font-family: 'Montserrat', sans-serif; }
-    ::-webkit-scrollbar { width: 4px; }
-    ::-webkit-scrollbar-track { background: #0F0F0F; }
-    ::-webkit-scrollbar-thumb { background: #7A5E1A; border-radius: 2px; }
-    .nav-item { transition: all .15s; cursor: pointer; border-left: 2px solid transparent; }
-    .nav-item:hover { background: #161410 !important; color: #E2C97E !important; }
-    .nav-item.active { background: #161410 !important; border-left-color: #C8A951 !important; color: #C8A951 !important; }
-    .hvr { transition: border-color .12s, background .12s; }
-    .hvr:hover { border-color: #7A5E1A !important; background: #141414 !important; }
-    @keyframes fadeUp { from { opacity:0; transform:translateY(6px); } to { opacity:1; transform:translateY(0); } }
-    .fade { animation: fadeUp .2s ease forwards; }
-    @keyframes shimmer { 0% { background-position: -200% center; } 100% { background-position: 200% center; } }
-    .shimmer {
-      background: linear-gradient(90deg,#7A5E1A,#C8A951,#F0DFA0,#C8A951,#7A5E1A);
-      background-size: 200% auto;
-      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-      background-clip: text; animation: shimmer 4s linear infinite;
+  const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+    if (event === 'PASSWORD_RECOVERY') {
+      setResetMode(true);
+      setResetSuccess(false);
+      setUser(null);
+      setLoading(false);
+      initialCheckDone = true;
+      return;
     }
-    .day-cell { transition: border-color .1s; cursor: pointer; border-radius: 4px; }
-    .day-cell:hover { border-color: #7A5E1A !important; }
-    .res-block { border-radius:3px; padding:1px 5px; font-size:9px; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; cursor:pointer; margin-bottom:2px; }
-    @keyframes spin { to { transform: rotate(360deg); } }
-    .spin { display:inline-block; animation: spin .8s linear infinite; }
-    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
-    .pulse { animation: pulse 1s ease infinite; }
-    input[type=range] { -webkit-appearance:none; height:4px; border-radius:2px; background:#2A2A2A; outline:none; cursor:pointer; }
-    input[type=range]::-webkit-slider-thumb { -webkit-appearance:none; width:14px; height:14px; border-radius:50%; background:linear-gradient(135deg,#7A5E1A,#C8A951); cursor:pointer; }
-    .toggle-track { width:28px; height:16px; border-radius:8px; background:#2A2A2A; border:0.5px solid #333; cursor:pointer; position:relative; transition:background .2s; }
-    .toggle-track.on { background:#7A5E1A; border-color:#C8A951; }
-    .toggle-thumb { position:absolute; top:2px; left:2px; width:10px; height:10px; border-radius:50%; background:#888; transition:left .2s, background .2s; }
-    .toggle-track.on .toggle-thumb { left:14px; background:#C8A951; }
-  `;
-  document.head.appendChild(s);
-};
-
-const Logo = ({ size = 32 }) => (
-  <svg width={size} height={size} viewBox="0 0 120 120" fill="none">
-    <defs>
-      <linearGradient id="rG" x1="0%" y1="0%" x2="100%" y2="100%">
-        <stop offset="0%" stopColor="#7A5E1A"/><stop offset="50%" stopColor="#C8A951"/><stop offset="100%" stopColor="#7A5E1A"/>
-      </linearGradient>
-      <linearGradient id="kG" x1="0%" y1="0%" x2="100%" y2="100%">
-        <stop offset="0%" stopColor="#C8A951"/><stop offset="50%" stopColor="#F0DFA0"/><stop offset="100%" stopColor="#8B6914"/>
-      </linearGradient>
-    </defs>
-    <circle cx="60" cy="60" r="58" fill="#0F0F0F"/>
-    <circle cx="60" cy="60" r="56" stroke="url(#rG)" strokeWidth="2" fill="none"/>
-    <g transform="translate(60,60)">
-      <circle cx="0" cy="-14" r="10" stroke="url(#kG)" strokeWidth="2.5" fill="none"/>
-      <circle cx="0" cy="-14" r="5" fill="url(#kG)" opacity=".6"/>
-      <rect x="-1.5" y="-4" width="3" height="22" rx="1.5" fill="url(#kG)"/>
-      <rect x="1.5" y="8" width="5" height="2.5" rx="1" fill="url(#kG)"/>
-      <rect x="1.5" y="13" width="4" height="2.5" rx="1" fill="url(#kG)"/>
-    </g>
-  </svg>
-);
-
-const NAV = [
-  { section:"Vue d'ensemble", items:[
-    { id:"dashboard",   icon:"⊞", label:"Dashboard" },
-    { id:"appartements",icon:"⌂", label:"Appartements" },
-    { id:"calendrier",  icon:"▦", label:"Calendrier" },
-  ]},
-  { section:"Opérations", items:[
-    { id:"reservations",icon:"◈", label:"Réservations", badge:0, badgeColor:"#E07A65" },
-    { id:"menage",      icon:"✦", label:"Ménage & équipes" },
-  ]},
-  { section:"Finance", items:[
-    { id:"facturation", icon:"▣", label:"Facturation" },
-    { id:"tarification",icon:"€", label:"Tarification" },
-  ]},
-  { section:"IA", items:[
-    { id:"agent",       icon:"🤖", label:"Checklist IA" },
-  ]},
-];
-
-
-const LoginModal = ({ onLogin, onClose }) => {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [resetSent, setResetSent] = useState(false);
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setLoading(true); setError('');
-    try {
-      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-      if (error) throw error;
-      if (data.user) onLogin(data.user);
-    } catch (err) {
-      const msg = err.message || '';
-      if (msg.includes('Invalid login credentials') || msg.includes('invalid_credentials')) {
-        setError('Email ou mot de passe incorrect.');
-      } else if (msg.includes('Email not confirmed') || msg.includes('email_not_confirmed')) {
-        setError('Veuillez confirmer votre email avant de vous connecter.');
-      } else if (msg.includes('Too many requests')) {
-        setError('Trop de tentatives. Veuillez attendre quelques minutes.');
+    if (event === 'USER_UPDATED') {
+      setResetMode(false);
+      setResetSuccess(false);
+      if (session?.user) {
+        const u = await getCurrentUser();
+        setUser(u);
       } else {
-        setError(msg || 'Une erreur est survenue.');
+        setUser(null);
       }
-    } finally { setLoading(false); }
-  };
+      setLoading(false);
+      initialCheckDone = true;
+      return;
+    }
+    if (event === 'SIGNED_IN') {
+      if (session?.user) {
+        const u = await getCurrentUser();
+        setUser(u);
+      }
+      setLoading(false);
+      initialCheckDone = true;
+      return;
+    }
+    if (event === 'SIGNED_OUT') {
+      setUser(null);
+      setLoading(false);
+      initialCheckDone = true;
+      return;
+    }
+    if (event === 'INITIAL_SESSION') {
+      if (session?.user) {
+        const u = await getCurrentUser();
+        setUser(u);
+      } else {
+        setUser(null);
+      }
+      setLoading(false);
+      initialCheckDone = true;
+      return;
+    }
+    if (!initialCheckDone) {
+      if (session?.user) {
+        const u = await getCurrentUser();
+        setUser(u);
+      } else {
+        setUser(null);
+      }
+      setLoading(false);
+      initialCheckDone = true;
+    }
+  });
 
-  const handleOverlayClick = (e) => { if (e.target === e.currentTarget) onClose(); };
+  const fallback = setTimeout(() => {
+    if (!initialCheckDone) {
+      getCurrentUser().then(u => { setUser(u); setLoading(false); initialCheckDone = true; });
+    }
+  }, 3000);
 
-  return (
-    <div onClick={handleOverlayClick} style={{ position:'fixed',inset:0,background:'rgba(0,0,0,0.8)',display:'flex',alignItems:'center',justifyContent:'center',zIndex:1000 }}>
-      <div style={{ background:'#131313',padding:'40px',borderRadius:'12px',width:'360px',boxShadow:'0 4px 24px rgba(0,0,0,0.5)',border:'1px solid #3A2E10',position:'relative' }}>
-        <button onClick={onClose} style={{ position:'absolute',top:'16px',right:'16px',background:'none',border:'none',color:'#7A7470',fontSize:'20px',cursor:'pointer',lineHeight:1 }}>×</button>
-        <h2 style={{ color:'#C8A951',marginBottom:'24px',textAlign:'center',fontFamily:"'Cormorant Garamond',serif",letterSpacing:'2px' }}>ESPACE CLIENT</h2>
-        {!resetSent ? (
-          <form onSubmit={handleSubmit}>
-            <label style={{ display:'block',fontSize:10,color:'#7A7470',marginBottom:4,letterSpacing:2 }}>EMAIL</label>
-            <input type="email" value={email} onChange={e => { setEmail(e.target.value); setError(''); }} placeholder="votre@email.com" required
-              style={{ width:'100%',padding:'10px',marginBottom:'16px',background:'#0F0F0F',border:'1px solid #333',color:'#fff',borderRadius:'6px',boxSizing:'border-box',fontSize:'14px' }} />
-            <label style={{ display:'block',fontSize:10,color:'#7A7470',marginBottom:4,letterSpacing:2 }}>MOT DE PASSE</label>
-            <input type="password" value={password} onChange={e => { setPassword(e.target.value); setError(''); }} placeholder="••••••••" required
-              style={{ width:'100%',padding:'10px',marginBottom:'4px',background:'#0F0F0F',border:'1px solid #333',color:'#fff',borderRadius:'6px',boxSizing:'border-box',fontSize:'14px' }} />
-            {error && <div style={{ color:'#E07A65',fontSize:'13px',marginBottom:'12px',marginTop:'4px' }}>{error}</div>}
-            {!error && <div style={{ height:'28px' }} />}
-            <button type="submit" disabled={loading}
-              style={{ width:'100%',padding:'12px',background:'#C8A951',color:'#080808',border:'none',borderRadius:'6px',fontWeight:'bold',cursor:'pointer',fontSize:'14px',letterSpacing:'1px' }}>
-              {loading ? 'Connexion...' : 'SE CONNECTER'}
-            </button>
-            <button type="button" onClick={async () => {
-                setError(''); setResetSent(false);
-                if (!email) { setError("Entrez votre email d'abord"); return; }
-                const { error: e } = await supabase.auth.resetPasswordForEmail(email, { redirectTo: window.location.origin });
-                if (e) { setError(e.message); } else { setResetSent(true); }
-              }}
-              style={{ background:'none',border:'none',color:'#C8A951',fontFamily:"'Montserrat',sans-serif",fontSize:'12px',cursor:'pointer',textDecoration:'underline',marginTop:10,display:'block',width:'100%',textAlign:'center' }}>
-              Mot de passe oublié ?
-            </button>
-          </form>
-        ) : (
-          <div style={{ textAlign:'center' }}>
-            <div style={{ color:'#5BBF8A',marginBottom:'16px',fontSize:'14px' }}>Email envoyé ! Consultez votre boite mail.</div>
-            <div style={{ color:'#7A7470',fontSize:'12px',marginBottom:'20px' }}>Cliquez sur le lien dans l’email pour réinitialiser votre mot de passe.</div>
-            <button onClick={() => setResetSent(false)} style={{ background:'none',border:'none',color:'#C8A951',fontFamily:"'Montserrat',sans-serif",fontSize:'12px',cursor:'pointer',textDecoration:'underline' }}>
-              Retour à la connexion
-            </button>
-          </div>
-        )}
-      </div>
-    </div>
-  );
-};
-const LandingPage = ({ onOpenLogin }) => {
-  const features = [
-    { icon:'P', title:'Calendrier unifie', desc:'Synchronisation Airbnb et Booking automatique, zero conflit de reservation.' },
-    { icon:'H', title:'Gestion des appartements', desc:'Configuration personnalisee par bien, suivi complet de chaque propriete.' },
-    { icon:'M', title:'Equipes de menage', desc:'Assignation et suivi des interventions en temps reel.' },
-    { icon:'F', title:'Facturation', desc:'Recapitulatifs automatiques par appartement chaque mois.' },
-    { icon:'R', title:'Checklist IA', desc:'Generee selon le type de bien pour ne rien oublier.' },
-    { icon:'D', title:'Tableau de bord', desc:"Taux d'occupation, revenus et prochains departs en un coup d'oeil." },
-  ];
-  const steps = [
-    { n:'01', title:'Ajoutez vos appartements', desc:'Connectez vos flux iCal Airbnb et Booking en quelques secondes.' },
-    { n:'02', title:'Synchronisation automatique', desc:'Les reservations se mettent a jour en temps reel, sans intervention de votre part.' },
-    { n:'03', title:'Gerez et deleguez', desc:'Consultez vos revenus, deleguez les menages et suivez tout depuis un seul ecran.' },
-  ];
-  const btnStyle = (large) => ({ background:`linear-gradient(135deg,${C.goldDark},${C.gold})`, color:C.bg, border:'none', padding: large ? '14px 36px' : '10px 24px', borderRadius:4, fontSize: large ? 13 : 11, fontWeight:700, cursor:'pointer', fontFamily:F.sans, letterSpacing:2, textTransform:'uppercase' });
-  return (
-    <div style={{ fontFamily:F.sans, background:C.bg, color:C.white, minHeight:'100vh' }}>
-      <nav style={{ background:C.surface, borderBottom:`0.5px solid ${C.border}`, padding:'0 24px', height:56, display:'flex', alignItems:'center', justifyContent:'space-between', position:'sticky', top:0, zIndex:100 }}>
-        <div style={{ display:'flex', alignItems:'center', gap:10 }}>
-          <Logo size={28}/>
-          <div>
-            <div style={{ fontFamily:F.serif, fontSize:13, fontWeight:500, letterSpacing:3, color:C.white, textTransform:'uppercase', lineHeight:1 }}>AMC HOST</div>
-            <div style={{ fontFamily:F.sans, fontSize:8, letterSpacing:3, color:C.gold, textTransform:'uppercase', marginTop:2 }}>Channel Manager</div>
-          </div>
-        </div>
-        <button onClick={onOpenLogin} style={btnStyle(false)}>Se connecter</button>
-      </nav>
-      <section style={{ textAlign:'center', padding:'80px 24px 64px', maxWidth:720, margin:'0 auto' }}>
-        <h1 style={{ fontFamily:F.serif, fontSize:'clamp(28px,5vw,46px)', fontWeight:400, lineHeight:1.25, color:C.white, marginBottom:20 }}>
-          Gerez vos locations<br/><span style={{ color:C.gold }}>sans y penser.</span>
-        </h1>
-        <p style={{ fontSize:14, color:C.mutedMid, lineHeight:1.7, marginBottom:36 }}>
-          AMC Host centralise la gestion de vos appartements Airbnb et Booking : calendriers, reservations, menages, facturation - tout au meme endroit.
-        </p>
-        <button onClick={onOpenLogin} style={btnStyle(true)}>Acceder a mon espace</button>
-      </section>
-      <div style={{ borderTop:`0.5px solid ${C.border}`, borderBottom:`0.5px solid ${C.border}`, display:'flex', flexWrap:'wrap', justifyContent:'center' }}>
-        {[
-          { v:'Sync iCal', l:'automatique' },
-          { v:'Calendrier unifie', l:'0 conflit' },
-          { v:'Suivi', l:'24/7' },
-        ].map((s, i, arr) => (
-          <div key={i} style={{ flex:'1 1 150px', maxWidth:260, textAlign:'center', padding:'28px 16px', borderRight: i < arr.length-1 ? `0.5px solid ${C.border}` : 'none' }}>
-            <div style={{ fontFamily:F.serif, fontSize:20, color:C.gold }}>{s.v}</div>
-            <div style={{ fontFamily:F.sans, fontSize:10, color:C.muted, letterSpacing:2, textTransform:'uppercase', marginTop:4 }}>{s.l}</div>
-          </div>
-        ))}
-      </div>
-      <section style={{ padding:'64px 24px', maxWidth:960, margin:'0 auto' }}>
-        <h2 style={{ fontFamily:F.serif, fontSize:28, fontWeight:400, textAlign:'center', color:C.white, marginBottom:8 }}>Fonctionnalites</h2>
-        <p style={{ fontFamily:F.sans, fontSize:12, color:C.muted, textAlign:'center', marginBottom:40, letterSpacing:1 }}>Tout ce dont vous avez besoin pour gerer vos biens sereinement.</p>
-        <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(260px,1fr))', gap:16 }}>
-          {features.map((f, i) => (
-            <div key={i} style={{ background:C.card, border:`0.5px solid ${C.border}`, borderRadius:8, padding:22 }}>
-              <div style={{ fontFamily:F.serif, fontSize:16, color:C.white, marginBottom:8 }}>{f.title}</div>
-              <div style={{ fontFamily:F.sans, fontSize:11, color:C.muted, lineHeight:1.6 }}>{f.desc}</div>
-            </div>
-          ))}
-        </div>
-      </section>
-      <section style={{ background:C.surface, borderTop:`0.5px solid ${C.border}`, borderBottom:`0.5px solid ${C.border}`, padding:'64px 24px' }}>
-        <div style={{ maxWidth:800, margin:'0 auto' }}>
-          <h2 style={{ fontFamily:F.serif, fontSize:28, fontWeight:400, textAlign:'center', color:C.white, marginBottom:8 }}>Comment ca marche</h2>
-          <p style={{ fontFamily:F.sans, fontSize:12, color:C.muted, textAlign:'center', marginBottom:48, letterSpacing:1 }}>Operationnel en quelques minutes.</p>
-          <div style={{ display:'flex', flexDirection:'column', gap:28 }}>
-            {steps.map((s, i) => (
-              <div key={i} style={{ display:'flex', gap:20, alignItems:'flex-start' }}>
-                <div style={{ fontFamily:F.serif, fontSize:32, color:C.borderGold, fontWeight:400, lineHeight:1, flexShrink:0, minWidth:48 }}>{s.n}</div>
-                <div>
-                  <div style={{ fontFamily:F.serif, fontSize:18, color:C.gold, marginBottom:6 }}>{s.title}</div>
-                  <div style={{ fontFamily:F.sans, fontSize:12, color:C.muted, lineHeight:1.6 }}>{s.desc}</div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-      <section style={{ textAlign:'center', padding:'64px 24px' }}>
-        <h2 style={{ fontFamily:F.serif, fontSize:28, fontWeight:400, color:C.white, marginBottom:12 }}>Pret a simplifier votre gestion ?</h2>
-        <p style={{ fontFamily:F.sans, fontSize:12, color:C.muted, marginBottom:32 }}>Connectez-vous a votre espace client pour commencer.</p>
-        <button onClick={onOpenLogin} style={btnStyle(true)}>Acceder a mon espace</button>
-      </section>
-      <footer style={{ borderTop:`0.5px solid ${C.border}`, padding:'28px 24px', textAlign:'center', fontFamily:F.sans, fontSize:11, color:C.muted, letterSpacing:1 }}>
-        <div style={{marginBottom:6}}>AM Conciergerie Plus - Usage prive</div>
-        <div style={{display:'flex', justifyContent:'center', alignItems:'center', gap:24, flexWrap:'wrap'}}>
-          <a href="tel:0758522770" style={{color:C.gold, textDecoration:'none', letterSpacing:1, fontSize:12}}>📞 07 58 52 27 70</a>
-          <a href="mailto:contact@amconciergerieplus.fr" style={{color:C.gold, textDecoration:'none', letterSpacing:1, fontSize:12}}>✉ contact@amconciergerieplus.fr</a>
-        </div>
-      </footer>
-    </div>
-  );
-};
-
-
-const Dashboard = ({ setPage }) => {
-  const [apparts, setApparts]   = useState([]);
-  const [reservations, setRes]  = useState([]);
-  const [alertes, setAlertes]   = useState([]);
-  const [loading, setLoading]   = useState(true);
-
-  useEffect(() => {
-    const load = async () => {
-      try {
-        const [{ data: ap }, { data: res }] = await Promise.all([
-          supabase.from('appartements').select('*').order('created_at'),
-          supabase.from('reservations').select('*, appartements(nom,nom_long,color)').order('checkin').limit(5),
-        ]);
-        setApparts(ap || []);
-        setRes(res || []);
-        const sansMontant = (res||[]).filter(r => !r.montant || r.montant === 0);
-        setAlertes(sansMontant);
-      } catch (e) { console.error(e); }
-      finally { setLoading(false); }
-    };
-    load();
-  }, []);
+  return () => { subscription.unsubscribe(); clearTimeout(fallback); };
+}, []);
 
   const aujourd_hui = new Date().toISOString().split('T')[0];
   const arrivees = reservations.filter(r => r.checkin === aujourd_hui);
