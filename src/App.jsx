@@ -88,20 +88,20 @@ const Logo = ({ size = 32 }) => (
 
 const NAV = [
   { section:"Vue d'ensemble", items:[
-    { id:"dashboard",   icon:"â", label:"Dashboard" },
-    { id:"appartements",icon:"â", label:"Appartements" },
-    { id:"calendrier",  icon:"â¦", label:"Calendrier" },
+    { id:"dashboard",   icon:"⊞", label:"Dashboard" },
+    { id:"appartements",icon:"⌂", label:"Appartements" },
+    { id:"calendrier",  icon:"▦", label:"Calendrier" },
   ]},
-  { section:"OpÃ©rations", items:[
-    { id:"reservations",icon:"â", label:"RÃ©servations", badge:0, badgeColor:"#E07A65" },
-    { id:"menage",      icon:"â¦", label:"MÃ©nage & Ã©quipes" },
+  { section:"Opérations", items:[
+    { id:"reservations",icon:"◈", label:"Réservations", badge:0, badgeColor:"#E07A65" },
+    { id:"menage",      icon:"✦", label:"Ménage & équipes" },
   ]},
   { section:"Finance", items:[
-    { id:"facturation", icon:"â£", label:"Facturation" },
-    { id:"tarification",icon:"â¬", label:"Tarification" },
+    { id:"facturation", icon:"▣", label:"Facturation" },
+    { id:"tarification",icon:"€", label:"Tarification" },
   ]},
   { section:"IA", items:[
-    { id:"agent",       icon:"ð¤", label:"Checklist IA" },
+    { id:"agent",       icon:"🤖", label:"Checklist IA" },
   ]},
 ];
 
@@ -139,7 +139,7 @@ const LoginModal = ({ onLogin, onClose }) => {
   return (
     <div onClick={handleOverlayClick} style={{ position:'fixed',inset:0,background:'rgba(0,0,0,0.8)',display:'flex',alignItems:'center',justifyContent:'center',zIndex:1000 }}>
       <div style={{ background:'#131313',padding:'40px',borderRadius:'12px',width:'360px',boxShadow:'0 4px 24px rgba(0,0,0,0.5)',border:'1px solid #3A2E10',position:'relative' }}>
-        <button onClick={onClose} style={{ position:'absolute',top:'16px',right:'16px',background:'none',border:'none',color:'#7A7470',fontSize:'20px',cursor:'pointer',lineHeight:1 }}>Ã</button>
+        <button onClick={onClose} style={{ position:'absolute',top:'16px',right:'16px',background:'none',border:'none',color:'#7A7470',fontSize:'20px',cursor:'pointer',lineHeight:1 }}>×</button>
         <h2 style={{ color:'#C8A951',marginBottom:'24px',textAlign:'center',fontFamily:"'Cormorant Garamond',serif",letterSpacing:'2px' }}>ESPACE CLIENT</h2>
         {!resetSent ? (
           <form onSubmit={handleSubmit}>
@@ -147,7 +147,7 @@ const LoginModal = ({ onLogin, onClose }) => {
             <input type="email" value={email} onChange={e => { setEmail(e.target.value); setError(''); }} placeholder="votre@email.com" required
               style={{ width:'100%',padding:'10px',marginBottom:'16px',background:'#0F0F0F',border:'1px solid #333',color:'#fff',borderRadius:'6px',boxSizing:'border-box',fontSize:'14px' }} />
             <label style={{ display:'block',fontSize:10,color:'#7A7470',marginBottom:4,letterSpacing:2 }}>MOT DE PASSE</label>
-            <input type="password" value={password} onChange={e => { setPassword(e.target.value); setError(''); }} placeholder="â¢â¢â¢â¢â¢â¢â¢â¢" required
+            <input type="password" value={password} onChange={e => { setPassword(e.target.value); setError(''); }} placeholder="••••••••" required
               style={{ width:'100%',padding:'10px',marginBottom:'4px',background:'#0F0F0F',border:'1px solid #333',color:'#fff',borderRadius:'6px',boxSizing:'border-box',fontSize:'14px' }} />
             {error && <div style={{ color:'#E07A65',fontSize:'13px',marginBottom:'12px',marginTop:'4px' }}>{error}</div>}
             {!error && <div style={{ height:'28px' }} />}
@@ -162,15 +162,15 @@ const LoginModal = ({ onLogin, onClose }) => {
                 if (e) { setError(e.message); } else { setResetSent(true); }
               }}
               style={{ background:'none',border:'none',color:'#C8A951',fontFamily:"'Montserrat',sans-serif",fontSize:'12px',cursor:'pointer',textDecoration:'underline',marginTop:10,display:'block',width:'100%',textAlign:'center' }}>
-              Mot de passe oubliÃ©Â ?
+              Mot de passe oublié ?
             </button>
           </form>
         ) : (
           <div style={{ textAlign:'center' }}>
-            <div style={{ color:'#5BBF8A',marginBottom:'16px',fontSize:'14px' }}>Email envoyÃ©Â ! Consultez votre boite mail.</div>
-            <div style={{ color:'#7A7470',fontSize:'12px',marginBottom:'20px' }}>Cliquez sur le lien dans lâemail pour rÃ©initialiser votre mot de passe.</div>
+            <div style={{ color:'#5BBF8A',marginBottom:'16px',fontSize:'14px' }}>Email envoyé ! Consultez votre boite mail.</div>
+            <div style={{ color:'#7A7470',fontSize:'12px',marginBottom:'20px' }}>Cliquez sur le lien dans l’email pour réinitialiser votre mot de passe.</div>
             <button onClick={() => setResetSent(false)} style={{ background:'none',border:'none',color:'#C8A951',fontFamily:"'Montserrat',sans-serif",fontSize:'12px',cursor:'pointer',textDecoration:'underline' }}>
-              Retour Ã  la connexion
+              Retour à la connexion
             </button>
           </div>
         )}
@@ -263,8 +263,8 @@ const LandingPage = ({ onOpenLogin }) => {
       <footer style={{ borderTop:`0.5px solid ${C.border}`, padding:'28px 24px', textAlign:'center', fontFamily:F.sans, fontSize:11, color:C.muted, letterSpacing:1 }}>
         <div style={{marginBottom:6}}>AM Conciergerie Plus - Usage prive</div>
         <div style={{display:'flex', justifyContent:'center', alignItems:'center', gap:24, flexWrap:'wrap'}}>
-          <a href="tel:0758522770" style={{color:C.gold, textDecoration:'none', letterSpacing:1, fontSize:12}}>ð 07 58 52 27 70</a>
-          <a href="mailto:contact@amconciergerieplus.fr" style={{color:C.gold, textDecoration:'none', letterSpacing:1, fontSize:12}}>â contact@amconciergerieplus.fr</a>
+          <a href="tel:0758522770" style={{color:C.gold, textDecoration:'none', letterSpacing:1, fontSize:12}}>📞 07 58 52 27 70</a>
+          <a href="mailto:contact@amconciergerieplus.fr" style={{color:C.gold, textDecoration:'none', letterSpacing:1, fontSize:12}}>✉ contact@amconciergerieplus.fr</a>
         </div>
       </footer>
     </div>
@@ -308,7 +308,7 @@ const Dashboard = ({ setPage }) => {
           </h1>
           <p style={{ fontFamily:F.sans, fontSize:11, color:C.muted, marginTop:4 }}>
             {new Date().toLocaleDateString('fr-FR', { weekday:'long', year:'numeric', month:'long', day:'numeric' })}
-            {apparts.length > 0 && ` Â· ${apparts.length} appartement${apparts.length > 1 ? 's' : ''}`}
+            {apparts.length > 0 && ` · ${apparts.length} appartement${apparts.length > 1 ? 's' : ''}`}
           </p>
         </div>
       </div>
@@ -320,10 +320,10 @@ const Dashboard = ({ setPage }) => {
           {alertes.length > 0 && (
             <div style={{ background:`${C.warn}15`, border:`0.5px solid ${C.warn}44`, borderRadius:6, padding:'12px 16px', marginBottom:16, cursor:'pointer' }} onClick={()=>setPage('reservations')}>
               <div style={{ fontFamily:F.sans, fontSize:11, color:C.warn, fontWeight:600, marginBottom:4 }}>
-                â ï¸ {alertes.length} rÃ©servation{alertes.length>1?'s':''} sans montant
+                ⚠️ {alertes.length} réservation{alertes.length>1?'s':''} sans montant
               </div>
               <div style={{ fontFamily:F.sans, fontSize:10, color:C.mutedMid }}>
-                Cliquez pour saisir les montants manquants â la facturation se mettra Ã  jour automatiquement
+                Cliquez pour saisir les montants manquants → la facturation se mettra à jour automatiquement
               </div>
             </div>
           )}
@@ -331,8 +331,8 @@ const Dashboard = ({ setPage }) => {
           <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:12, marginBottom:22 }}>
             {[
               { l:'Appartements', v:apparts.length },
-              { l:"ArrivÃ©es aujourd'hui", v:arrivees.length, c:C.successTxt },
-              { l:"DÃ©parts aujourd'hui", v:departs.length, c:C.dangerTxt },
+              { l:"Arrivées aujourd'hui", v:arrivees.length, c:C.successTxt },
+              { l:"Départs aujourd'hui", v:departs.length, c:C.dangerTxt },
               { l:'Montants manquants', v:alertes.length, c:alertes.length>0?C.warn:C.successTxt },
             ].map((s, i) => (
               <div key={i} style={{ background:C.card, border:`0.5px solid ${C.border}`, borderRadius:6, padding:'13px 16px' }}>
@@ -348,13 +348,13 @@ const Dashboard = ({ setPage }) => {
                 <div key={ap.id} className="hvr" onClick={()=>setPage('appartements')}
                   style={{ background:C.card, border:`0.5px solid ${C.border}`, borderRadius:6, padding:'12px 14px', cursor:'pointer', borderLeft:`2px solid ${ap.color||C.gold}` }}>
                   <div style={{ fontFamily:F.serif, fontSize:14, color:C.white, marginBottom:4 }}>{ap.nom_long||ap.nom}</div>
-                  <div style={{ fontFamily:F.sans, fontSize:10, color:C.muted }}>{ap.type} Â· {ap.ville}</div>
+                  <div style={{ fontFamily:F.sans, fontSize:10, color:C.muted }}>{ap.type} · {ap.ville}</div>
                 </div>
               ))}
             </div>
           ) : (
             <div style={{ background:C.card, border:`0.5px solid ${C.borderGold}`, borderRadius:6, padding:'24px', textAlign:'center', marginBottom:20 }}>
-              <div style={{ fontFamily:F.serif, fontSize:16, color:C.gold, marginBottom:8 }}>â¦ Bienvenue sur AMC HOST</div>
+              <div style={{ fontFamily:F.serif, fontSize:16, color:C.gold, marginBottom:8 }}>✦ Bienvenue sur AMC HOST</div>
               <div style={{ fontFamily:F.sans, fontSize:12, color:C.muted, lineHeight:1.7, marginBottom:16 }}>Commencez par ajouter votre premier appartement.</div>
               <button onClick={()=>setPage('appartements')}
                 style={{ background:`linear-gradient(135deg,${C.goldDark},${C.gold})`, color:C.bg, border:'none', padding:'7px 16px', borderRadius:3, fontSize:10, fontWeight:600, cursor:'pointer', fontFamily:F.sans, letterSpacing:1, textTransform:'uppercase' }}>
@@ -366,20 +366,20 @@ const Dashboard = ({ setPage }) => {
           {reservations.length > 0 && (
             <div style={{ background:C.card, border:`0.5px solid ${C.border}`, borderRadius:6, padding:'14px 16px' }}>
               <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:12 }}>
-                <span style={{ fontFamily:F.sans, fontSize:9, color:C.gold, letterSpacing:2.5, textTransform:'uppercase' }}>RÃ©servations rÃ©centes</span>
-                <span style={{ fontFamily:F.sans, fontSize:9, color:C.muted, cursor:'pointer' }} onClick={()=>setPage('reservations')}>Tout voir â</span>
+                <span style={{ fontFamily:F.sans, fontSize:9, color:C.gold, letterSpacing:2.5, textTransform:'uppercase' }}>Réservations récentes</span>
+                <span style={{ fontFamily:F.sans, fontSize:9, color:C.muted, cursor:'pointer' }} onClick={()=>setPage('reservations')}>Tout voir →</span>
               </div>
               {reservations.map(r => (
                 <div key={r.id} style={{ display:'flex', alignItems:'center', gap:10, padding:'7px 0', borderBottom:`0.5px solid ${C.border}` }}>
                   <div style={{ width:3, height:28, borderRadius:2, background:r.appartements?.color||C.gold, flexShrink:0 }}/>
                   <div style={{ flex:1 }}>
                     <div style={{ fontFamily:F.sans, fontSize:11, color:C.white }}>{r.voyageur_nom}</div>
-                    <div style={{ fontFamily:F.sans, fontSize:9, color:C.muted, marginTop:1 }}>{r.appartements?.nom} Â· {r.checkin} â {r.checkout}</div>
+                    <div style={{ fontFamily:F.sans, fontSize:9, color:C.muted, marginTop:1 }}>{r.appartements?.nom} · {r.checkin} → {r.checkout}</div>
                   </div>
                   <span style={{ fontFamily:F.sans, fontSize:10, color:r.source==='airbnb'?'#FF5A5F':'#003B95', fontWeight:600 }}>{r.source}</span>
                   {r.montant > 0
-                    ? <span style={{ fontFamily:F.serif, fontSize:14, color:C.gold }}>{r.montant} â¬</span>
-                    : <span style={{ fontFamily:F.sans, fontSize:10, color:C.warn }}>â ï¸ Montant manquant</span>
+                    ? <span style={{ fontFamily:F.serif, fontSize:14, color:C.gold }}>{r.montant} €</span>
+                    : <span style={{ fontFamily:F.sans, fontSize:10, color:C.warn }}>⚠️ Montant manquant</span>
                   }
                 </div>
               ))}
@@ -463,7 +463,7 @@ export default function App() {
                 setResetError('');
                 if (!newPwd || !confirmPwd) { setResetError('Remplissez les deux champs'); return; }
                 if (newPwd !== confirmPwd) { setResetError('Les mots de passe ne correspondent pas'); return; }
-                if (newPwd.length < 6) { setResetError('Minimum 6 caractÃ¨res requis'); return; }
+                if (newPwd.length < 6) { setResetError('Minimum 6 caractères requis'); return; }
                 const { error } = await supabase.auth.updateUser({ password: newPwd });
                 if (error) { setResetError(error.message); }
                 else { setNewPwd(''); setConfirmPwd(''); setResetSuccess(true); }
@@ -475,9 +475,9 @@ export default function App() {
         ) : (
           <>
             <div style={{ textAlign:'center',marginBottom:'24px' }}>
-              <div style={{ color:'#5BBF8A',fontSize:'32px',marginBottom:'12px' }}>â</div>
-              <h2 style={{ color:'#C8A951',marginBottom:'12px',fontFamily:"'Cormorant Garamond',serif",letterSpacing:'2px' }}>MOT DE PASSE MODIFIÃ</h2>
-              <p style={{ color:'#7A7470',fontSize:'13px',marginBottom:'20px',lineHeight:'1.6' }}>Votre mot de passe a Ã©tÃ© mis Ã  jour. Veuillez vous reconnecter.</p>
+              <div style={{ color:'#5BBF8A',fontSize:'32px',marginBottom:'12px' }}>✓</div>
+              <h2 style={{ color:'#C8A951',marginBottom:'12px',fontFamily:"'Cormorant Garamond',serif",letterSpacing:'2px' }}>MOT DE PASSE MODIFIÉ</h2>
+              <p style={{ color:'#7A7470',fontSize:'13px',marginBottom:'20px',lineHeight:'1.6' }}>Votre mot de passe a été mis à jour. Veuillez vous reconnecter.</p>
             </div>
             <button
               onClick={() => { setResetMode(false); setResetSuccess(false); setUser(null); setShowLoginModal(true); }}
@@ -519,7 +519,7 @@ export default function App() {
     <div style={{ fontFamily:F.sans, background:C.bg, color:C.white, minHeight:'100vh', display:'flex', flexDirection:'column' }}>
       <div style={{ background:C.surface, borderBottom:`0.5px solid ${C.border}`, padding:'0 20px', height:54, display:'flex', alignItems:'center', justifyContent:'space-between', position:'sticky', top:0, zIndex:100, flexShrink:0 }}>
         <div style={{ display:'flex', alignItems:'center', gap:12 }}>
-          <button onClick={() => setSidebar(!sidebarOpen)} style={{ background:'transparent', border:'none', color:C.muted, cursor:'pointer', fontSize:16, padding:'4px', lineHeight:1 }}>â°</button>
+          <button onClick={() => setSidebar(!sidebarOpen)} style={{ background:'transparent', border:'none', color:C.muted, cursor:'pointer', fontSize:16, padding:'4px', lineHeight:1 }}>☰</button>
           <Logo size={30}/>
           <div>
             <div style={{ fontFamily:F.serif, fontSize:14, fontWeight:500, letterSpacing:3.5, color:C.white, textTransform:'uppercase', lineHeight:1 }}>AMC HOST</div>
@@ -530,12 +530,12 @@ export default function App() {
           {montantsManquants > 0 && (
             <button onClick={()=>setPage('reservations')}
               style={{ background:`${C.warn}15`, border:`0.5px solid ${C.warn}44`, color:C.warn, padding:'5px 10px', borderRadius:3, fontSize:9, cursor:'pointer', fontFamily:F.sans, fontWeight:600 }}>
-              â ï¸ {montantsManquants} montant{montantsManquants>1?'s':''} manquant{montantsManquants>1?'s':''}
+              ⚠️ {montantsManquants} montant{montantsManquants>1?'s':''} manquant{montantsManquants>1?'s':''}
             </button>
           )}
           <button onClick={async () => { await supabase.auth.signOut(); setUser(null); }}
             style={{ background:'transparent', border:`0.5px solid ${C.border}`, color:C.muted, padding:'5px 10px', borderRadius:3, fontSize:9, cursor:'pointer', fontFamily:F.sans }}>
-            DÃ©connexion
+            Déconnexion
           </button>
           <div style={{ width:30, height:30, borderRadius:'50%', background:`linear-gradient(135deg,${C.goldDark},${C.gold})`, display:'flex', alignItems:'center', justifyContent:'center', fontSize:11, fontWeight:700, color:C.bg, fontFamily:F.sans }}>
             {user?.email?.[0]?.toUpperCase() || 'A'}
@@ -565,7 +565,7 @@ export default function App() {
             ))}
           </div>
           <div style={{ padding:'12px 18px', borderTop:`0.5px solid ${C.border}` }}>
-            <div style={{ fontFamily:F.sans, fontSize:8, color:C.muted, letterSpacing:2, textTransform:'uppercase', marginBottom:3 }}>AMC HOST Â· v1.0</div>
+            <div style={{ fontFamily:F.sans, fontSize:8, color:C.muted, letterSpacing:2, textTransform:'uppercase', marginBottom:3 }}>AMC HOST · v1.0</div>
             <div style={{ fontFamily:F.sans, fontSize:9, color:C.muted }}>AM Conciergerie Plus</div>
           </div>
         </div>
